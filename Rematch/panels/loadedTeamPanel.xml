@@ -1,0 +1,144 @@
+<Ui>
+    <Frame parentKey="LoadedTeamPanel" parent="RematchFrame">
+
+        <Frames>
+            <!-- PreferencesFrame is an inset frame in topleft with a preferences button within -->
+            <Frame parentKey="PreferencesFrame" inherits="RematchGoldInsetFrameTemplate">
+                <Size x="28" y="26"/>
+                <Anchors>
+                    <Anchor point="TOPLEFT"/>
+                </Anchors>
+                <Frames>
+                    <Button parentKey="PreferencesButton" registerForClicks="AnyUp" motionScriptsWhileDisabled="true" inherits="RematchSmallGreyButtonTemplate">
+                        <Anchors>
+                            <Anchor point="LEFT" x="2" y="0"/>
+                        </Anchors>
+                        <KeyValues>
+                            <KeyValue key="isPreferencesButton" value="true" type="boolean"/>
+                        </KeyValues>
+                        <Scripts>
+                            <OnEnter inherit="prepend">
+                                self:OnEnter()
+                            </OnEnter>
+                            <OnLeave inherit="prepend">
+                                self:OnLeave()
+                            </OnLeave>
+                            <OnClick>
+                                self:OnClick(button)
+                            </OnClick>
+                        </Scripts>
+                    </Button>
+                </Frames>
+            </Frame>
+            <Frame parentKey="NotesFrame" inherits="RematchGoldInsetFrameTemplate">
+                <Size x="28" y="26"/>
+                <Anchors>
+                    <Anchor point="TOPRIGHT"/>
+                </Anchors>
+                <Frames>
+                    <Button parentKey="NotesButton" inherits="RematchSmallGreyButtonTemplate">
+                        <Anchors>
+                            <Anchor point="LEFT" x="2" y="0"/>
+                        </Anchors>
+                        <Scripts>
+                            <OnEnter inherit="prepend">
+                                self:OnEnter()
+                            </OnEnter>
+                            <OnLeave inherit="prepend">
+                                self:OnLeave()
+                            </OnLeave>
+                            <OnClick>
+                                self:OnClick(button)
+                            </OnClick>
+                        </Scripts>
+                    </Button>
+                </Frames>
+            </Frame>
+            <!-- TeamButton is the brown/gold area with the name of the loaded team -->
+            <Button parentKey="TeamButton" registerForClicks="AnyUp" inherits="RematchGoldInsetFrameTemplate">
+                <Size x="0" y="26"/>
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.PreferencesButton" relativePoint="TOPRIGHT" x="2" y="0"/>
+                    <Anchor point="TOPRIGHT" relativeKey="$parent.NotesButton" relativePoint="TOPLEFT" x="-2" y="0"/>
+                </Anchors>
+                <Layers>
+                    <Layer level="BACKGROUND">
+                        <!-- doodads in topleft and topright corners -->
+                        <Texture file="Interface\Collections\Collections" alpha="0.65">
+                            <Size x="28" y="26"/> <!-- original texture is 86x64 -->
+                            <Anchors>
+                                <Anchor point="TOPLEFT" x="3" y="-3"/>
+                            </Anchors>
+                            <TexCoords left="0.00390625" right="0.169921875" top="0.015625" bottom="0.138671875"/>
+                            <Color r="0.75" g="0.75" b="0.75"/>
+                        </Texture>
+                        <Texture file="Interface\Collections\Collections" alpha="0.65">
+                            <Size x="28" y="26"/>
+                            <Anchors>
+                                <Anchor point="TOPRIGHT" x="-3" y="-3"/>
+                            </Anchors>
+                            <TexCoords left="0.169921875" right="0.00390625" top="0.015625" bottom="0.138671875"/>
+                            <Color r="0.75" g="0.75" b="0.75"/>
+                        </Texture>
+                    </Layer>
+                    <Layer level="BORDER">
+                        <!-- favorite star -->
+                        <Texture parentKey="Favorite" atlas="PetJournal-FavoritesIcon">
+                            <Size x="20" y="20"/>
+                            <Anchors>
+                                <Anchor point="TOPLEFT" x="0" y="0"/>
+                            </Anchors>
+                        </Texture>
+                    </Layer>
+                    <Layer level="ARTWORK">
+                        <!-- name of team -->
+                        <FontString parentKey="Name" inherits="GameFontNormal" wordwrap="false">
+                            <Size x="0" y="26"/>
+                            <Anchors>
+                                <Anchor point="LEFT" x="8" y="0"/>
+                                <Anchor point="RIGHT" x="-8" y="0"/>
+                            </Anchors>
+                        </FontString>
+                    </Layer>
+                </Layers>
+                <Frames>
+                    <!-- flash for when team loads -->
+                    <Frame parentKey="Bling" inherits="RematchBlingAreaTemplate">
+                        <Anchors>
+                            <Anchor point="TOPLEFT" x="2" y="-2"/>
+                            <Anchor point="BOTTOMRIGHT" x="-2" y="2"/>
+                        </Anchors>
+                    </Frame>
+                </Frames>
+                <Scripts>
+                    <OnEnter>
+                        self:OnEnter()
+                    </OnEnter>
+                    <OnLeave>
+                        self:OnLeave()
+                    </OnLeave>
+                    <OnMouseDown>
+                        self:OnMouseDown()
+                    </OnMouseDown>
+                    <OnMouseUp>
+                        self:OnMouseUp()
+                    </OnMouseUp>
+                    <OnClick>
+                        self:OnClick(button)
+                    </OnClick>
+                </Scripts>
+            </Button>
+
+        </Frames>
+        <Scripts>
+            <OnShow>
+                self:OnShow()
+            </OnShow>
+            <OnHide>
+                self:OnHide()
+            </OnHide>
+        </Scripts>
+    </Frame>
+
+    <Script file="loadedTeamPanel.lua"/>
+</Ui>

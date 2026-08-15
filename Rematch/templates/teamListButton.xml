@@ -1,0 +1,314 @@
+<Ui>
+    <Script file="teamListButton.lua"/>
+
+    <!-- group/header template -->
+    <Button name="RematchHeaderTeamListButtonTemplate" registerForDrag="LeftButton" registerForClicks="AnyUp" mixin="RematchHeaderTeamListButtonMixin" inherits="RematchHeaderListButtonTemplate" virtual="true">
+        <Layers>
+            <Layer level="BORDER">
+                <Texture parentKey="Icon" hidden="true">
+                    <Size x="18" y="18"/>
+                    <Anchors>
+                        <Anchor point="RIGHT" x="-4" y="0"/>
+                    </Anchors>
+                    <TexCoords left="0.075" right="0.925" top="0.075" bottom="0.925"/>
+                </Texture>
+                <MaskTexture parentKey="IconMask" file="Interface\CharacterFrame\TempPortraitAlphaMask">
+                    <Size x="18" Y="18"/>
+                    <Anchors>
+                        <Anchor point="RIGHT" x="-4" y="0"/>
+                    </Anchors>
+                    <MaskedTextures>
+                        <MaskedTexture childKey="Icon"/>
+                    </MaskedTextures>
+                </MaskTexture>
+                <Texture parentArray="Badges">
+                    <Size x="14" y="14"/>
+                    <Anchors>
+                        <Anchor point="RIGHT" relativeKey="$parent.Icon" relativePoint="LEFT" x="-1" y="0"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+            <Layer level="OVERLAY">
+                <!-- thin gold border around button.Icon -->
+                <Texture parentKey="Border" file="Interface\PetBattles\PetBattleHUD" hidden="true">
+                    <Size x="18" y="18"/>
+                    <Anchors>
+                        <Anchor point="RIGHT" x="-4" y="0"/>
+                    </Anchors>
+                    <TexCoords left="0.884765625" right="0.943359375" top="0.681640625" bottom="0.798828125"/>
+                </Texture>
+            </Layer>
+        </Layers>
+        <Scripts>
+            <OnEnter method="OnEnter"/>
+            <OnLeave method="OnLeave"/>
+            <OnMouseDown method="OnMouseDown"/>
+            <OnMouseUp method="OnMouseUp"/>
+            <OnClick method="OnClick"/>
+            <OnDragStart method="OnDragStart"/>
+        </Scripts>
+    </Button>
+
+    <!-- normal list button template -->
+    <Button name="RematchNormalTeamListButtonTemplate" registerForDrag="LeftButton" registerForClicks="AnyUp" mixin="RematchCommonTeamListButtonMixin,RematchNormalTeamListButtonMixin" virtual="true">
+        <Size x="0" y="44"/>
+        <Layers>
+            <Layer level="BACKGROUND">
+                <!-- background texture stretchable over most of the button (aside from pet icons) -->
+                <Texture parentKey="Back" file="Interface\AddOns\Rematch\textures\listbuttondark">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="91" y="-1"/>
+                        <Anchor point="BOTTOMRIGHT"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+            <Layer level="BORDER">
+                <!-- Name of the team/target/header -->
+                <FontString parentKey="Name" inherits="GameFontNormal" justifyH="LEFT">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="97" y="-4"/>
+                        <Anchor point="TOPRIGHT" x="-6" y="-4"/>
+                    </Anchors>
+                </FontString>
+                <FontString parentKey="SubName" inherits="GameFontNormalSmall" justifyH="LEFT" wordwrap="true">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Name" relativePoint="BOTTOMLEFT" x="0" y="-1"/>
+                        <Anchor point="TOPRIGHT" relativeKey="$parent.Name" relativePoint="BOTTOMRIGHT" x="0" y="-1"/>
+                    </Anchors>
+                </FontString>
+                <FontString parentKey="Wins" inherits="GameFontHighlightSmall" text="100%">
+                    <Anchors>
+                        <Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT" x="-3" y="6"/>
+                    </Anchors>
+                    <Color r="0.8" g="0.8" b="0.8"/>
+                </FontString>
+            </Layer>
+			<Layer level="ARTWORK">
+                <!-- pets for the team or target -->
+				<Texture parentArray="Pets" mixin="RematchTeamListPetButtonMixin">
+					<Size x="28" y="40"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" x="2" y="-2"/>
+					</Anchors>
+					<TexCoords left="0.203125" right="0.796875" top="0.078125" bottom="0.921875"/>
+					<KeyValues>
+						<KeyValue key="petSlot" value="1"/>
+					</KeyValues>
+                    <Scripts>
+                        <OnEnter method="OnEnter"/>
+                        <OnLeave method="OnLeave"/>
+                        <OnMouseDown method="OnMouseDown"/>
+                        <OnMouseUp method="OnMouseUp"/>
+                    </Scripts>
+				</Texture>
+				<Texture parentArray="Pets" mixin="RematchTeamListPetButtonMixin">
+					<Size x="28" y="40"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" x="31" y="-2"/>
+					</Anchors>
+					<TexCoords left="0.203125" right="0.796875" top="0.078125" bottom="0.921875"/>
+					<KeyValues>
+						<KeyValue key="petSlot" value="2"/>
+					</KeyValues>
+                    <Scripts>
+                        <OnEnter method="OnEnter"/>
+                        <OnLeave method="OnLeave"/>
+                        <OnMouseDown method="OnMouseDown"/>
+                        <OnMouseUp method="OnMouseUp"/>
+                    </Scripts>
+				</Texture>
+				<Texture parentArray="Pets" mixin="RematchTeamListPetButtonMixin">
+					<Size x="28" y="40"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" x="60" y="-2"/>
+					</Anchors>
+					<TexCoords left="0.203125" right="0.796875" top="0.078125" bottom="0.921875"/>
+					<KeyValues>
+						<KeyValue key="petSlot" value="3"/>
+					</KeyValues>
+                    <Scripts>
+                        <OnEnter method="OnEnter"/>
+                        <OnLeave method="OnLeave"/>
+                        <OnMouseDown method="OnMouseDown"/>
+                        <OnMouseUp method="OnMouseUp"/>
+                    </Scripts>
+				</Texture>
+            </Layer>
+            <Layer level="OVERLAY">
+                <!-- border over the pet icons on the left (44px tall for team, 26px tall for target) -->
+                <Texture parentKey="Border" file="Interface\AddOns\Rematch\textures\teamborders">
+                    <Size x="90" y="44"/>
+                    <Anchors>
+                        <Anchor point="LEFT"/>
+                    </Anchors>
+                    <TexCoords left="0" right="0.3515625" top="0" bottom="0.171875"/>
+                </Texture>
+                <!-- notes button in topright acts as a real button -->
+                <Texture parentKey="NotesButton" inherits="RematchNotesButtonTemplate" hidden="true">
+                    <Anchors>
+                        <Anchor point="TOPRIGHT" x="-3" y="-5"/>
+                    </Anchors>
+                    <Scripts>
+                        <OnEnter method="OnEnter"/>
+                        <OnLeave method="OnLeave"/>
+                        <OnMouseDown method="OnMouseDown"/>
+                        <OnMouseUp method="OnMouseUp"/>
+                    </Scripts>
+                </Texture>
+                <!-- this is the first of potentially a few badges -->
+                <Texture parentArray="Badges">
+                    <Size x="14" y="14"/>
+                    <Anchors>
+                        <Anchor point="RIGHT" relativeKey="$parent.NotesButton" relativePoint="LEFT" x="-1" y="0"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+            <Layer level="OVERLAY" textureSubLevel="1">
+                <!-- favorite star in topleft corner-->
+                <Texture parentKey="Favorite" atlas="PetJournal-FavoritesIcon" hidden="true">
+                    <Size x="21" y="21"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="-5" y="3"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+        </Layers>
+        <Scripts>
+            <OnEnter method="OnEnter"/>
+            <OnLeave method="OnLeave"/>
+            <OnMouseDown method="OnMouseDown"/>
+            <OnMouseUp method="OnMouseUp"/>
+            <OnClick method="OnClick"/>
+            <OnDragStart method="OnDragStart"/>
+        </Scripts>
+    </Button>
+
+    <!-- compact list button template -->
+    <Button name="RematchCompactTeamListButtonTemplate" registerForDrag="LeftButton" registerForClicks="AnyUp" mixin="RematchCommonTeamListButtonMixin,RematchCompactTeamListButtonMixin" virtual="true">
+        <Size x="0" y="26"/>
+        <Layers>
+            <Layer level="BACKGROUND">
+                <!-- background texture stretchable over most of the button (aside from pet icons) -->
+                <Texture parentKey="Back" file="Interface\AddOns\Rematch\textures\listbuttondark">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="73" y="-1"/>
+                        <Anchor point="BOTTOMRIGHT"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+            <Layer level="BORDER">
+                <!-- name of the team/target (no subname in compact) -->
+                <FontString parentKey="Name" inherits="GameFontNormal" justifyH="LEFT" wordwrap="false">
+                    <Anchors>
+                        <Anchor point="LEFT" x="76" y="0"/>
+                    </Anchors>
+                </FontString>
+                <FontString parentKey="Wins" inherits="GameFontHighlightSmall" text="100%">
+                    <Anchors>
+                        <Anchor point="RIGHT" x="-3" y="0"/>
+                    </Anchors>
+                    <Color r="0.8" g="0.8" b="0.8"/>
+                </FontString>
+            </Layer>
+			<Layer level="ARTWORK">
+                <!-- pets for the team or target -->
+				<Texture parentArray="Pets" mixin="RematchTeamListPetButtonMixin">
+					<Size x="22" y="22"/>
+					<Anchors>
+						<Anchor point="LEFT" x="2" y="0"/>
+					</Anchors>
+					<TexCoords left="0.075" right="0.925" top="0.075" bottom="0.925"/>
+					<KeyValues>
+						<KeyValue key="petSlot" value="1"/>
+					</KeyValues>
+                    <Scripts>
+                        <OnEnter method="OnEnter"/>
+                        <OnLeave method="OnLeave"/>
+                        <OnMouseDown method="OnMouseDown"/>
+                        <OnMouseUp method="OnMouseUp"/>
+                    </Scripts>
+				</Texture>
+				<Texture parentArray="Pets" mixin="RematchTeamListPetButtonMixin">
+					<Size x="22" y="22"/>
+					<Anchors>
+						<Anchor point="LEFT" x="25" y="0"/>
+					</Anchors>
+					<TexCoords left="0.075" right="0.925" top="0.075" bottom="0.925"/>
+					<KeyValues>
+						<KeyValue key="petSlot" value="2"/>
+					</KeyValues>
+                    <Scripts>
+                        <OnEnter method="OnEnter"/>
+                        <OnLeave method="OnLeave"/>
+                        <OnMouseDown method="OnMouseDown"/>
+                        <OnMouseUp method="OnMouseUp"/>
+                    </Scripts>
+				</Texture>
+				<Texture parentArray="Pets" mixin="RematchTeamListPetButtonMixin">
+					<Size x="22" y="22"/>
+					<Anchors>
+						<Anchor point="LEFT" x="48" y="0"/>
+					</Anchors>
+					<TexCoords left="0.075" right="0.925" top="0.075" bottom="0.925"/>
+					<KeyValues>
+						<KeyValue key="petSlot" value="3"/>
+					</KeyValues>
+                    <Scripts>
+                        <OnEnter method="OnEnter"/>
+                        <OnLeave method="OnLeave"/>
+                        <OnMouseDown method="OnMouseDown"/>
+                        <OnMouseUp method="OnMouseUp"/>
+                    </Scripts>
+				</Texture>
+            </Layer>
+            <Layer level="OVERLAY">
+                <!-- border over the pet icons on the left (44px tall for team, 26px tall for target) -->
+                <Texture parentKey="Border" file="Interface\AddOns\Rematch\textures\teamborders">
+                    <Size x="72" y="26"/>
+                    <Anchors>
+                        <Anchor point="LEFT"/>
+                    </Anchors>
+                    <TexCoords left="0" right="0.28125" top="0.1875" bottom="0.2890625"/>
+                </Texture>
+                <!-- notes button in topright acts as a real button -->
+                <Texture parentKey="NotesButton" inherits="RematchNotesButtonTemplate" hidden="true">
+                    <Size x="18" y="18"/>
+                    <Anchors>
+                        <Anchor point="RIGHT" x="-30" y="0"/>
+                    </Anchors>
+                    <Scripts>
+                        <OnEnter method="OnEnter"/>
+                        <OnLeave method="OnLeave"/>
+                        <OnMouseDown method="OnMouseDown"/>
+                        <OnMouseUp method="OnMouseUp"/>
+                    </Scripts>
+                </Texture>
+                <!-- this is the first of potentially a few badges -->
+                <Texture parentArray="Badges">
+                    <Size x="14" y="14"/>
+                    <Anchors>
+                        <Anchor point="RIGHT" x="-3" y="0"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+            <Layer level="OVERLAY" textureSubLevel="1">
+                <Texture parentKey="Favorite" atlas="PetJournal-FavoritesIcon" hidden="true">
+                    <Size x="16" y="16"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="-4" y="3"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+        </Layers>
+        <Scripts>
+            <OnEnter method="OnEnter"/>
+            <OnLeave method="OnLeave"/>
+            <OnMouseDown method="OnMouseDown"/>
+            <OnMouseUp method="OnMouseUp"/>
+            <OnClick method="OnClick"/>
+            <OnDragStart method="OnDragStart"/>
+        </Scripts>
+    </Button>
+
+
+</Ui>

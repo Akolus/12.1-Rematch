@@ -1,0 +1,95 @@
+<Ui>
+
+	<Button name="RematchTeamTabTemplate" registerForDrag="LeftButton" registerForClicks="AnyUp" mixin="RematchTeamTabMixin" useParentLevel="true" virtual="true">
+		<Size x="36" y="44"/>
+		<!-- main part of button is 40x44 from topleft with 40x4 at bottom for shadow -->
+		<HitRectInsets>
+			<AbsInset left="0" right="0" top="-2" bottom="2"/>
+		</HitRectInsets>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture parentKey="Background" file="Interface\AddOns\Rematch\Textures\teamtab">
+                    <Size x="44" y="44"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT"/>
+                    </Anchors>
+                    <TexCoords left="0" right="0.6875" top="0.5" bottom="0.84375"/>
+                </Texture>
+			</Layer>
+			<Layer level="ARTWORK">
+				<Texture parentKey="Icon" file="Interface\Icons\INV_Misc_QuestionMark">
+					<Size x="30" y="30"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" x="2" y="-5"/>
+					</Anchors>
+					<TexCoords left="0.075" right="0.925" top="0.075" bottom="0.925"/>
+				</Texture>
+                <MaskTexture parentKey="IconMask" file="Interface\Common\common-iconmask" hWrapMode="CLAMPTOBLACKADDITIVE" vWrapMode="CLAMPTOBLACKADDITIVE">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Icon" relativePoint="TOPLEFT"/>
+                        <Anchor point="BOTTOMRIGHT" relativeKey="$parent.Icon" relativePoint="BOTTOMRIGHT"/>
+                    </Anchors>
+                    <MaskedTextures>
+                        <MaskedTexture childKey="Icon"/>
+                    </MaskedTextures>
+                </MaskTexture>
+			</Layer>
+		</Layers>
+        <Scripts>
+            <OnEnter method="OnEnter"/>
+            <OnLeave method="OnLeave"/>
+            <OnMouseDown method="OnMouseDown"/>
+            <OnMouseUp method="OnMouseUp"/>
+            <OnClick method="OnClick"/>
+        </Scripts>
+	</Button>
+
+    <Frame parentKey="TeamTabs" parent="RematchFrame">
+        <Size x="44" y="572"/>
+        <Anchors>
+            <Anchor point="TOPLEFT" relativePoint="TOPRIGHT" x="-1" y="-32"/>
+        </Anchors>
+        <Layers>
+            <Layer level="ARTWORK">
+                <Texture setAllPoints="true" hidden="true">
+                    <Color r="0" g="1" b="0" a="0.2"/>
+                </Texture>
+            </Layer>
+        </Layers>
+        <Frames>
+            <!-- positioned over a tab to be the recipient of a dragged team -->
+            <Frame parentKey="GlowTab" hidden="true">
+                <Size x="36" y="44"/>
+                <Layers>
+                    <Layer level="OVERLAY">
+                        <Texture parentKey="Icon" file="Interface\Archeology\arch-flareeffect" alphaMode="ADD" alpha="0.9">
+                            <Size x="30" y="30"/>
+                            <Anchors>
+                                <Anchor point="TOPLEFT" x="2" y="-5"/>
+                            </Anchors>
+                            <TexCoords left="0.201171875" right="0.716796875" top="0.125" bottom="0.208984375"/>
+                        </Texture>
+                        <MaskTexture parentKey="IconMask" file="Interface\Common\common-iconmask" hWrapMode="CLAMPTOBLACKADDITIVE" vWrapMode="CLAMPTOBLACKADDITIVE">
+                            <Anchors>
+                                <Anchor point="TOPLEFT" relativeKey="$parent.Icon" relativePoint="TOPLEFT"/>
+                                <Anchor point="BOTTOMRIGHT" relativeKey="$parent.Icon" relativePoint="BOTTOMRIGHT"/>
+                            </Anchors>
+                            <MaskedTextures>
+                                <MaskedTexture childKey="Icon"/>
+                            </MaskedTextures>
+                        </MaskTexture>
+                    </Layer>
+                </Layers>
+                <Animations>
+                    <AnimationGroup parentKey="Animation" looping="BOUNCE">
+                        <Alpha fromAlpha="0.25" toAlpha="1" duration="0.9" order="1"/>
+                        <Alpha fromAlpha="1" toAlpha="0.25" duration="0.9" order="2"/>
+                    </AnimationGroup>
+                </Animations>
+            </Frame>
+        </Frames>
+    </Frame>
+
+    <Script file="teamTabs.lua"/>
+
+</Ui>

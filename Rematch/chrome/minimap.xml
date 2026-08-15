@@ -1,0 +1,64 @@
+<Ui>
+
+    <Button name="RematchMinimapButton" parent="Minimap" toplevel="true" frameStrata="HIGH" registerForClicks="AnyUp" registerForDrag="LeftButton" hidden="true">
+        <Size x="31" y="31"/>
+        <Anchors>
+            <Anchor point="CENTER"/>
+        </Anchors>
+        <Layers>
+            <Layer level="BACKGROUND">
+                <Texture parentKey="Icon" file="Interface\Icons\PetJournalPortrait">
+                    <Size x="24" y="24"/>
+                    <Anchors>
+                        <Anchor point="CENTER"/>
+                    </Anchors>
+                </Texture>
+                <MaskTexture parentKey="CircleMask" file="Interface\CharacterFrame\TempPortraitAlphaMask">
+                    <Size x="24" Y="24"/>
+                    <Anchors>
+                        <Anchor point="CENTER"/>
+                    </Anchors>
+                    <MaskedTextures>
+                        <MaskedTexture childKey="Icon"/>
+                    </MaskedTextures>
+                </MaskTexture>
+
+            </Layer>
+            <Layer level="OVERLAY">
+                <Texture parentKey="Border" file="Interface\Minimap\MiniMap-TrackingBorder">
+                    <Size x="53" y="53"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+        </Layers>
+        <HighlightTexture file="Interface\Minimap\UI-Minimap-ZoomButton-Highlight" alphaMode="ADD"/>
+        <Scripts>
+            <OnEnter>
+                self:OnEnter()
+            </OnEnter>
+            <OnLeave>
+                self:OnLeave()
+            </OnLeave>
+            <OnMouseDown>
+                self:OnMouseDown()
+            </OnMouseDown>
+            <OnMouseUp>
+                self:OnMouseUp()
+            </OnMouseUp>
+            <OnClick>
+                self:OnClick(button)
+            </OnClick>
+            <OnDragStart>
+                self:OnDragStart()
+            </OnDragStart>
+            <OnDragStop>
+                self:OnDragStop()
+            </OnDragStop>
+        </Scripts>
+    </Button>
+
+    <Script file="minimap.lua"/>
+
+</Ui>

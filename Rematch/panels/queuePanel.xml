@@ -1,0 +1,204 @@
+<Ui>
+
+    <!-- most of the work is done by regular PetListButtonTemplates, but some overrides for queue -->
+    <Button name="RematchNormalQueueListButtonTemplate" mixin="RematchQueueListButtonMixin" inherits="RematchNormalPetListButtonTemplate" virtual="true">
+        <KeyValues>
+            <KeyValue key="forQueue" value="true" type="boolean"/>
+        </KeyValues>
+        <Scripts>
+            <OnClick method="OnClick"/>
+            <OnReceiveDrag method="OnReceiveDrag"/>
+        </Scripts>
+    </Button>
+
+    <Button name="RematchCompactQueueListButtonTemplate" mixin="RematchQueueListButtonMixin" inherits="RematchCompactPetListButtonTemplate" virtual="true">
+        <KeyValues>
+            <KeyValue key="forQueue" value="true" type="boolean"/>
+        </KeyValues>
+        <Scripts>
+            <OnClick method="OnClick"/>
+            <OnReceiveDrag method="OnReceiveDrag"/>
+        </Scripts>
+    </Button>
+
+    <Frame parentKey="QueuePanel" parent="RematchFrame">
+        <Frames>
+            <!-- PreferencesFrame is an inset frame in topleft with a preferences button within -->
+            <Frame parentKey="PreferencesFrame" inherits="RematchPanelInsetFrameTemplate">
+                <Size x="29" y="29"/>
+                <Anchors>
+                    <Anchor point="TOPLEFT"/>
+                </Anchors>
+                <Frames>
+                    <Button parentKey="PreferencesButton" registerForClicks="AnyUp" motionScriptsWhileDisabled="true" inherits="RematchSmallGreyButtonTemplate">
+                        <Anchors>
+                            <Anchor point="LEFT" x="3" y="0"/>
+                        </Anchors>
+                        <KeyValues>
+                            <KeyValue key="icon" value="Interface\AddOns\Rematch\textures\badges-borderless"/>
+                            <!-- <KeyValue key="coords" value="0.87890625,0.99609375,0.12890625,0.24609375"/> -->
+                            <KeyValue key="coords" value="0.75390625,0.87109375,0.12890625,0.24609375"/>
+                            <KeyValue key="isPreferencesButton" value="true" type="boolean"/>
+                        </KeyValues>
+                        <Scripts>
+                            <OnEnter inherit="prepend">
+                                self:OnEnter()
+                            </OnEnter>
+                            <OnLeave inherit="prepend">
+                                self:OnLeave()
+                            </OnLeave>
+                            <OnClick>
+                                self:OnClick(button)
+                            </OnClick>
+                        </Scripts>
+                    </Button>
+                </Frames>
+            </Frame>
+            <!-- Top contains the number of pets in queue and Queue button -->
+            <Frame parentKey="Top" inherits="RematchPanelInsetFrameTemplate">
+                <Size x="0" y="29"/>
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.PreferencesFrame" relativePoint="TOPRIGHT" x="2" y="0"/>
+                    <Anchor point="TOPRIGHT"/>
+                </Anchors>
+                <Frames>
+                    <!-- Queue button in topright to open menu to change sort and other queue settings -->
+                    <Button parentKey="QueueButton" inherits="RematchFilterButtonTemplate">
+                        <Anchors>
+                            <Anchor point="TOPRIGHT" x="-3" y="-3"/>
+                        </Anchors>
+                        <Scripts>
+                            <OnClick>
+                                self:OnClick(button)
+                            </OnClick>
+                        </Scripts>
+                    </Button>
+                </Frames>
+                <Layers>
+                    <Layer level="ARTWORK">
+                        <FontString parentKey="Label" inherits="GameFontNormal" justifyH="LEFT" wordwrap="false">
+                            <Anchors>
+                                <Anchor point="LEFT" x="8" y="0"/>
+                                <Anchor point="RIGHT" relativeKey="$parent.QueueButton" relativePoint="LEFT" x="-4" y="0"/>
+                            </Anchors>
+                        </FontString>
+                    </Layer>
+                </Layers>
+            </Frame>
+            <!-- StatusBar shows when queue has auto sort enabled or preferences paused -->
+            <Frame parentKey="StatusBar" inherits="RematchPanelInsetFrameTemplate">
+                <Size x="0" y="26"/>
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.PreferencesFrame" relativePoint="BOTTOMLEFT" x="0" y="-2"/>
+                    <Anchor point="TOPRIGHT" relativeKey="$parent.Top" relativePoint="BOTTOMRIGHT" x="0" y="-2"/>
+                </Anchors>
+                <Frames>
+                    <!-- clear button to right of status bar -->
+                    <Button parentKey="Clear" inherits="RematchClearButtonTemplate">
+                        <Anchors>
+                            <Anchor point="RIGHT" x="-4" y="0"/>
+                        </Anchors>
+                        <Scripts>
+                            <OnClick>
+                                self:OnClick(button)
+                            </OnClick>
+                        </Scripts>
+                    </Button>
+                </Frames>
+                <Layers>
+                    <Layer level="ARTWORK">
+                        <FontString parentKey="Text" inherits="GameFontNormal" justifyH="LEFT" wordwrap="false">
+                            <Anchors>
+                                <Anchor point="LEFT" x="8" y="0"/>
+                                <Anchor point="RIGHT" x="-24" y="0"/>
+                            </Anchors>
+                        </FontString>
+                    </Layer>
+                </Layers>
+            </Frame>
+            <!-- List is the main list of pets in the queue -->
+            <Frame parentKey="List" inherits="RematchAutoScrollBoxTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.StatusBar" relativePoint="BOTTOMLEFT" x="0" y="-2"/>
+                    <Anchor point="BOTTOMRIGHT"/>
+                </Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<FontString parentKey="Help" inherits="GameFontNormal" justifyH="LEFT" justifyV="CENTER" hidden="true">
+							<Size x="200" y="300"/>
+							<Anchors>
+								<Anchor point="CENTER" x="-8" y="16"/>
+							</Anchors>
+							<Color r="0.75" g="0.75" b="0.75"/>
+						</FontString>
+					</Layer>
+				</Layers>
+                <Frames>
+                    <!-- stretched over teams/targets panels, contains a glow line/area to show where a team/group dropped -->
+                    <Frame parentKey="GlowFrame" clipChildren="true" frameStrata="DIALOG" hidden="true" setAllPoints="true">
+                        <Frames>
+                            <!-- glowing/pulsing line that appears where a team/group will be inserted -->
+                            <Frame parentKey="GlowLine" hidden="true">
+                                <Size x="248" y="8"/>
+                                <Layers>
+                                    <Layer level="ARTWORK">
+                                        <Texture file="Interface\AddOns\Rematch\textures\glowline" alphaMode="ADD">
+                                            <Size x="10" y="8"/>
+                                            <Anchors>
+                                                <Anchor point="LEFT"/>
+                                            </Anchors>
+                                            <TexCoords left="0" right="0.3125" top="0" bottom="0.625"/>
+                                        </Texture>
+                                        <Texture file="Interface\AddOns\Rematch\textures\glowline" alphaMode="ADD">
+                                            <Size x="10" y="8"/>
+                                            <Anchors>
+                                                <Anchor point="RIGHT"/>
+                                            </Anchors>
+                                            <TexCoords left="0.84375" right="1" top="0" bottom="0.625"/>
+                                        </Texture>
+                                        <Texture file="Interface\AddOns\Rematch\textures\glowline" alphaMode="ADD">
+                                            <Size x="0" y="8"/>
+                                            <Anchors>
+                                                <Anchor point="LEFT" x="10" y="0"/>
+                                                <Anchor point="RIGHT" x="-10" y="0"/>
+                                            </Anchors>
+                                            <TexCoords left="0.3125" right="0.84375" top="0" bottom="0.625"/>
+                                        </Texture>
+                                    </Layer>
+                                </Layers>
+                                <Animations>
+                                    <AnimationGroup parentKey="Animation" looping="BOUNCE">
+                                        <Alpha fromAlpha="0.25" toAlpha="1" duration="0.9" order="1"/>
+                                        <Alpha fromAlpha="1" toAlpha="0.25" duration="0.9" order="2"/>
+                                    </AnimationGroup>
+                                </Animations>
+                            </Frame>
+                        </Frames>
+                        <Scripts>
+                            <OnShow>
+                                self:OnShow()
+                            </OnShow>
+                            <OnHide>
+                                self:OnHide()
+                            </OnHide>
+                            <OnUpdate>
+                                self:OnUpdate(elapsed)
+                            </OnUpdate>
+                        </Scripts>
+                    </Frame>
+                </Frames>
+            </Frame>
+
+        </Frames>
+        <Scripts>
+            <OnShow>
+                self:OnShow()
+            </OnShow>
+            <OnHide>
+                self:OnHide()
+            </OnHide>
+        </Scripts>
+    </Frame>
+
+    <Script file="queuePanel.lua"/>
+</Ui>

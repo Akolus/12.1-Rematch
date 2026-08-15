@@ -1,0 +1,46 @@
+<Ui>
+    <Frame parentKey="BottomBar" parent="RematchFrame">
+        <Frames>
+            <Button parentKey="SummonButton" inherits="RematchPanelButtonTemplate,RematchTooltipScripts">
+                <Size x="120" y="23"/>
+                <Anchors>
+                    <Anchor point="BOTTOMLEFT"/>
+                </Anchors>
+            </Button>
+            <Button parentKey="FindBattleButton" inherits="RematchPanelButtonTemplate,RematchTooltipScripts">
+                <Size x="120" y="23"/>
+                <Anchors>
+                    <Anchor point="BOTTOMRIGHT"/>
+                </Anchors>
+            </Button>
+            <Button parentKey="SaveAsButton" inherits="RematchPanelButtonTemplate,RematchTooltipScripts">
+                <Size x="120" y="23"/>
+                <Anchors>
+                    <Anchor point="BOTTOMRIGHT" relativeKey="$parent.FindBattleButton" relativePoint="BOTTOMLEFT"/>
+                </Anchors>
+            </Button>
+            <Button parentKey="SaveButton" inherits="RematchPanelButtonTemplate,RematchTooltipScripts">
+                <Size x="120" y="23"/>
+                <Anchors>
+                    <Anchor point="BOTTOMRIGHT" relativeKey="$parent.SaveAsButton" relativePoint="BOTTOMLEFT"/>
+                </Anchors>
+            </Button>
+
+            <CheckButton parentKey="UseRematchCheckButton" inherits="RematchCheckButtonTemplate,RematchTooltipScripts">
+                <Anchors>
+                    <Anchor point="LEFT" relativeKey="$parent.SummonButton" relativePoint="RIGHT" x="0" y="0"/>
+                </Anchors>
+            </CheckButton>
+        </Frames>
+        <Scripts>
+            <OnShow>
+                self:OnShow()
+            </OnShow>
+            <OnHide>
+                self:OnHide()
+            </OnHide>
+        </Scripts>
+    </Frame>
+
+    <Script file="bottombar.lua"/>
+</Ui>

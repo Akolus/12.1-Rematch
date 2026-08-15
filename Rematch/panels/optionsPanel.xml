@@ -1,0 +1,223 @@
+<Ui>
+
+    <!-- DropDown widgets all have a label to the left with a RematchDropDown taking up the remaining space -->
+    <Button name="RematchOptionsDropDownTemplate" inherits="RematchTooltipScripts" virtual="true" hidden="true">
+        <Size x="0" y="26"/>
+        <KeyValues>
+            <KeyValue key="isOption" value="true" type="boolean"/>
+        </KeyValues>
+        <Layers>
+            <Layer level="ARTWORK">
+                <FontString parentKey="Label" inherits="GameFontHighlight" justifyH="LEFT">
+                    <Anchors>
+                        <Anchor point="LEFT" x="4" y="0"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+        <Frames>
+            <Button parentKey="DropDown" inherits="RematchDropDownTemplate,RematchTooltipScripts">
+                <KeyValues>
+                    <KeyValue key="isOption" value="true" type="boolean"/>
+                    <KeyValue key="tooltipAtParent" value="true" type="boolean"/>
+                </KeyValues>
+                <Anchors>
+                    <Anchor point="LEFT" relativeKey="$parent.Label" relativePoint="RIGHT" x="4" y="0"/>
+                    <Anchor point="RIGHT"/>
+                </Anchors>
+            </Button>
+        </Frames>
+    </Button>
+
+
+    <!-- template for header list buttons -->
+    <Button name="RematchOptionsHeaderTemplate" mixin="RematchOptionsListButtonMixin" inherits="RematchHeaderListButtonTemplate" virtual="true">
+        <KeyValues>
+            <KeyValue key="isOption" value="true" type="boolean"/>
+        </KeyValues>
+        <Scripts>
+            <OnEnter method="OnEnter"/>
+            <OnLeave method="OnLeave"/>
+            <OnMouseDown method="OnMouseDown"/>
+            <OnMouseUp method="OnMouseUp"/>
+            <OnClick method="OnClick"/>
+        </Scripts>
+    </Button>
+
+    <!-- template for check/radio list buttons -->
+    <Button name="RematchOptionsNormalTemplate" mixin="RematchOptionsListButtonMixin" virtual="true">
+        <Size x="0" y="26"/>
+        <KeyValues>
+            <KeyValue key="isOption" value="true" type="boolean"/>
+        </KeyValues>
+        <Layers>
+            <Layer level="ARTWORK">
+                <!-- Control can be a checkbutton, radio button etc depending on the option -->
+                <Texture parentKey="Check" file="Interface\AddOns\Rematch\textures\checkbuttons">
+                    <Size x="26" y="26"/>
+                    <Anchors>
+                        <Anchor point="LEFT"/>
+                    </Anchors>
+                    <TexCoords left="0" right="0.25" top="0.5" bottom="0.75"/>
+                </Texture>
+                <!-- text to the right of the control -->
+                <FontString parentKey="Text" inherits="GameFontHighlight" justifyH="LEFT" wordwrap="false" text="Option Header">
+                    <Anchors>
+                        <Anchor point="LEFT" relativeKey="$parent.Check" relativePoint="RIGHT" x="2" y="0"/>
+                        <Anchor point="RIGHT" x="-4" y="0"/>
+                    </Anchors>
+                    <Color r="0.9" g="0.9" b="0.9"/>
+                </FontString>
+            </Layer>
+        </Layers>
+        <Scripts>
+            <OnEnter method="OnEnter"/>
+            <OnLeave method="OnLeave"/>
+            <OnMouseDown method="OnMouseDown"/>
+            <OnMouseUp method="OnMouseUp"/>
+            <OnClick method="OnClick"/>
+        </Scripts>
+    </Button>
+
+    <Frame parentKey="OptionsPanel" parent="RematchFrame">
+        <Frames>
+            <!-- Top contains the options searchbar -->
+            <Frame parentKey="Top" inherits="RematchPanelInsetFrameTemplate">
+                <Size x="0" y="29"/>
+                <Anchors>
+                    <Anchor point="TOPLEFT"/>
+                    <Anchor point="TOPRIGHT"/>
+                </Anchors>
+                <Frames>
+                    <Button parentKey="AllButton" inherits="RematchAllButtonTemplate">
+                        <Anchors>
+                            <Anchor point="TOPLEFT" x="3" y="-3"/>
+                        </Anchors>
+                    </Button>
+                    <EditBox parentKey="SearchBox" inherits="RematchSearchBoxTemplate">
+                        <Anchors>
+                            <Anchor point="TOPLEFT" relativeKey="$parent.AllButton" relativePoint="TOPRIGHT" x="-1" y="0"/>
+                            <Anchor point="TOPRIGHT" x="-3" y="-3"/>
+                        </Anchors>
+                    </EditBox>
+                </Frames>
+            </Frame>
+            <!-- List -->
+            <Frame parentKey="List" inherits="RematchAutoScrollBoxTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.Top" relativePoint="BOTTOMLEFT" x="0" y="-2"/>
+                    <Anchor point="BOTTOMRIGHT"/>
+                </Anchors>
+            </Frame>
+
+            <!-- widgets are single controls that are placed within the list and should be a direct child of the OptionPanel frame -->
+
+            <!-- Breed Options: Breed Format -->
+            <Button parentKey="BreedFormatWidget" inherits="RematchOptionsDropDownTemplate"/>
+
+            <!-- Standalone Window Options: Use Custom Scale -->
+            <Button parentKey="UseCustomScaleWidget">
+                <KeyValues>
+                    <KeyValue key="isOption" value="true" type="boolean"/>
+                </KeyValues>
+                <Frames>
+                    <Button parentKey="ScaleButton" inherits="RematchGreyPanelButtonTemplate">
+                        <Anchors>
+                            <Anchor point="RIGHT"/>
+                        </Anchors>
+                        <Scripts>
+                            <OnClick>
+                                self:OnClick()
+                            </OnClick>
+                        </Scripts>
+                    </Button>
+                </Frames>
+                <Layers>
+                    <Layer level="ARTWORK">
+                        <Texture parentKey="Check" file="Interface\AddOns\Rematch\textures\checkbuttons">
+                            <Size x="26" y="26"/>
+                            <Anchors>
+                                <Anchor point="LEFT"/>
+                            </Anchors>
+                            <TexCoords left="0" right="0.25" top="0.5" bottom="0.75"/>
+                        </Texture>
+                        <FontString parentKey="Text" inherits="GameFontHighlight" justifyH="LEFT" wordwrap="false">
+                            <Anchors>
+                                <Anchor point="LEFT" relativeKey="$parent.Check" relativePoint="RIGHT" x="2" y="0"/>
+                                <Anchor point="RIGHT" relativeKey="$parent.ScaleButton" relativePoint="LEFT" x="-2" y="0"/>
+                            </Anchors>
+                            <Color r="0.9" g="0.9" b="0.9"/>
+                        </FontString>
+                    </Layer>
+                </Layers>
+                <Scripts>
+                    <OnEnter>
+                        self:OnEnter()
+                    </OnEnter>
+                    <OnLeave>
+                        self:OnLeave()
+                    </OnLeave>
+                    <OnMouseDown>
+                        self:OnMouseDown()
+                    </OnMouseDown>
+                    <OnMouseUp>
+                        self:OnMouseUp()
+                    </OnMouseUp>
+                    <OnClick>
+                        self:OnClick()
+                    </OnClick>
+                </Scripts>
+            </Button>
+
+            <!-- About: Options (to export/import/reset options) -->
+            <Button parentKey="OptionsManagementWidget">
+                <KeyValues>
+                    <KeyValue key="isOption" value="true" type="boolean"/>
+                </KeyValues>
+                <Layers>
+                    <Layer level="ARTWORK">
+                        <FontString parentKey="Label" inherits="GameFontHighlight">
+                            <Anchors>
+                                <Anchor point="LEFT" x="6" y="0"/>
+                            </Anchors>
+                            <Color r="0.9" g="0.9" b="0.9"/>
+                        </FontString>
+                    </Layer>
+                </Layers>
+                <Frames>
+                    <Button parentKey="ResetButton" inherits="RematchGreyPanelButtonTemplate">
+                        <Size x="68" y="24"/>
+                        <KeyValues>
+                            <KeyValue key="coord" value="68x24"/>
+                        </KeyValues>
+                        <Anchors>
+                            <Anchor point="RIGHT"/>
+                        </Anchors>
+                        <Scripts>
+                            <OnClick>
+                                self:OnClick()
+                            </OnClick>
+                        </Scripts>
+                    </Button>
+                    <Button parentKey="ExportButton" inherits="RematchGreyPanelButtonTemplate">
+                        <Size x="68" y="24"/>
+                        <KeyValues>
+                            <KeyValue key="coord" value="68x24"/>
+                        </KeyValues>
+                        <Anchors>
+                            <Anchor point="RIGHT" relativeKey="$parent.ResetButton" relativePoint="LEFT"/>
+                        </Anchors>
+                        <Scripts>
+                            <OnClick>
+                                self:OnClick()
+                            </OnClick>
+                        </Scripts>
+                    </Button>
+                </Frames>
+            </Button>
+
+        </Frames>
+    </Frame>
+
+    <Script file="optionsPanel.lua"/>
+</Ui>

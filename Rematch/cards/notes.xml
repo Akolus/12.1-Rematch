@@ -1,0 +1,264 @@
+<Ui>
+
+	<Frame name="RematchNotesCard" frameStrata="FULLSCREEN" parent="UIParent" flattenRenderLayers="true" clampedToScreen="true" enableMouse="true" movable="true" resizable="true" toplevel="true" inherits="RematchDefaultPanelTemplate" hidden="true">
+		<Size x="258" y="258"/>
+		<Anchors>
+			<Anchor point="CENTER"/>
+		</Anchors>
+		<ResizeBounds>
+			<minResize>
+				<AbsDimension x="234" y="171"/> <!-- 175 assumes 30px tall bottom -->
+			</minResize>
+			<maxResize>
+				<AbsDimension x="700" y="700"/>
+			</maxResize>
+		</ResizeBounds>
+        <Frames>
+            <!-- lock/unlock button in topleft to prevent moving/resizing notes -->
+            <Button parentKey="LockButton" inherits="RematchTitlebarButtonTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" x="1" y="-1"/>
+                </Anchors>
+                <KeyValues>
+                    <KeyValue key="icon" value="lock"/>
+                </KeyValues>
+            </Button>
+            <!-- border around always-visible part of card -->
+			<Frame parentKey="Content" ignoreParentAlpha="true" inherits="RematchBorderBackdropTemplate">
+				<Anchors> <!-- 254 width -->
+					<Anchor point="TOPLEFT" x="2" y="-22"/>
+					<Anchor point="BOTTOMRIGHT" x="-2" y="2"/>
+				</Anchors>
+                <Frames>
+                    <Frame parentKey="Bottom" useParentLevel="true" hidden="true">
+						<Size x="0" y="26"/>
+						<Anchors>
+							<Anchor point="BOTTOMLEFT" x="2" y="2"/>
+							<Anchor point="BOTTOMRIGHT" x="-2" y="2"/>
+						</Anchors>
+                        <Layers>
+							<Layer level="BACKGROUND">
+								<!-- brown gradient background to bottom area -->
+								<Texture parentKey="Back" file="Interface\PetBattles\PetJournal" setAllPoints="true">
+									<TexCoords left="0.19140625" right="0.65625" top="0.4873046875" bottom="0.5654296875"/>
+								</Texture>
+							</Layer>
+                            <Layer level="BORDER">
+                                <!-- horizontal line at top of Bottom to separate section -->
+                                <Texture file="Interface\Tooltips\UI-Tooltip-Border">
+                                    <Size x="0" y="5"/>
+                                    <Anchors>
+                                        <Anchor point="LEFT" relativePoint="TOPLEFT" x="1" y="0"/>
+                                        <Anchor point="RIGHT" relativePoint="TOPRIGHT" x="-1" y="0"/>
+                                    </Anchors>
+                                    <TexCoords left="0.8125" right="0.9453125" top="0.625" bottom="0.9375"/>
+                                    <Color r="0.5" g="0.5" b="0.5"/>
+                                </Texture>
+                            </Layer>
+                        </Layers>
+                        <Frames>
+                            <Button parentKey="DeleteButton" inherits="RematchPanelButtonTemplate">
+                                <Size x="80" y="23"/>
+                                <Anchors>
+                                    <Anchor point="LEFT" x="2" y="0"/>
+                                </Anchors>
+                            </Button>
+                            <Button parentKey="UndoButton" inherits="RematchPanelButtonTemplate">
+                                <Size x="80" y="23"/>
+                                <Anchors>
+                                    <Anchor point="CENTER"/>
+                                </Anchors>
+                            </Button>
+                            <Button parentKey="SaveButton" inherits="RematchPanelButtonTemplate">
+                                <Size x="80" y="23"/>
+                                <Anchors>
+                                    <Anchor point="RIGHT" x="-2" y="0"/>
+                                </Anchors>
+                                <Scripts>
+                                    <OnClick>
+                                        self:OnClick()
+                                    </OnClick>
+                                </Scripts>
+                            </Button>
+                        </Frames>
+                    </Frame>
+                    <!-- top of notes, pet or team name and icons -->
+					<Frame parentKey="Top" useParentLevel="true">
+						<Size x="0" y="38"/>
+						<Anchors>
+							<Anchor point="TOPLEFT" x="2" y="-2"/>
+							<Anchor point="TOPRIGHT" x="-2" y="-2"/>
+						</Anchors>
+						<Layers>
+							<Layer level="BACKGROUND">
+								<!-- brown gradient background to title area -->
+								<Texture parentKey="Back" file="Interface\PetBattles\PetJournal" setAllPoints="true">
+									<TexCoords left="0.19140625" right="0.65625" top="0.4873046875" bottom="0.5654296875"/>
+								</Texture>
+							</Layer>
+                            <Layer level="BORDER">
+                                <!-- LeftIcon is the notes icon masked to a circle -->
+                                <Texture parentKey="LeftIcon" file="Interface\Icons\INV_Scroll_03">
+                                    <Size x="32" y="32"/>
+                                    <Anchors>
+                                        <Anchor point="TOPLEFT" x="4" y="-3"/>
+                                    </Anchors>
+                                </Texture>
+                                <MaskTexture parentKey="LeftMask" file="Interface\CharacterFrame\TempPortraitAlphaMask" hWrapMode="CLAMPTOBLACKADDITIVE" vWrapMode="CLAMPTOBLACKADDITIVE">
+                                    <Anchors>
+                                        <Anchor point="TOPLEFT" relativeKey="$parent.LeftIcon" x="2" y="-2"/>
+                                        <Anchor point="BOTTOMRIGHT" relativeKey="$parent.LeftIcon" x="-2" y="2"/>
+                                    </Anchors>
+                                    <MaskedTextures>
+                                        <MaskedTexture childKey="LeftIcon"/>
+                                    </MaskedTextures>
+                                </MaskTexture>
+                                <!-- RightIcon is the pet type or group icon masked to a circle -->
+                                <Texture parentKey="RightIcon" file="Interface\Icons\INV_Misc_QuestionMark">
+                                    <Size x="32" y="32"/>
+                                    <Anchors>
+                                        <Anchor point="TOPRIGHT" x="-4" y="-3"/>
+                                    </Anchors>
+                                </Texture>
+                                <MaskTexture parentKey="RightMask" file="Interface\CharacterFrame\TempPortraitAlphaMask" hWrapMode="CLAMPTOBLACKADDITIVE" vWrapMode="CLAMPTOBLACKADDITIVE">
+                                    <Anchors>
+                                        <Anchor point="TOPLEFT" relativeKey="$parent.RightIcon" x="2" y="-2"/>
+                                        <Anchor point="BOTTOMRIGHT" relativeKey="$parent.RightIcon" x="-2" y="2"/>
+                                    </Anchors>
+                                    <MaskedTextures>
+                                        <MaskedTexture childKey="RightIcon"/>
+                                    </MaskedTextures>
+                                </MaskTexture>
+                                <!-- horizontal line at bottom of Top to separate section -->
+                                <Texture file="Interface\Tooltips\UI-Tooltip-Border">
+                                    <Size x="0" y="5"/>
+                                    <Anchors>
+                                        <Anchor point="LEFT" relativePoint="BOTTOMLEFT" x="1" y="0"/>
+                                        <Anchor point="RIGHT" relativePoint="BOTTOMRIGHT" x="-1" y="0"/>
+                                    </Anchors>
+                                    <TexCoords left="0.8125" right="0.9453125" top="0.625" bottom="0.9375"/>
+                                    <Color r="0.5" g="0.5" b="0.5"/>
+                                </Texture>
+                            </Layer>
+							<Layer level="ARTWORK">
+                                <!-- name of pet or team -->
+								<FontString parentKey="Name" inherits="SystemFont_Shadow_Med1_Outline" text="Name of Pet or Team">
+                                    <Size x="0" y="36"/>
+									<Anchors>
+										<Anchor point="LEFT" relativeKey="$parent.LeftIcon" relativePoint="RIGHT" x="2" y="-1"/>
+										<Anchor point="RIGHT" relativeKey="$parent.RightIcon" relativePoint="LEFT" x="-2" y="-1"/>
+									</Anchors>
+								</FontString>
+							</Layer>
+                            <Layer level="OVERLAY">
+                                <!-- thin gold borders around LeftIcon and RightIcon -->
+                                <Texture file="Interface\PetBattles\PetBattleHUD">
+                                    <Anchors>
+                                        <Anchor point="TOPLEFT" relativeKey="$parent.LeftIcon" relativePoint="TOPLEFT" x="0" y="1"/>
+                                        <Anchor point="BOTTOMRIGHT" relativeKey="$parent.LeftIcon" relativePoint="BOTTOMRIGHT" x="1" y="0"/>
+                                    </Anchors>
+                                    <TexCoords left="0.884765625" right="0.943359375" top="0.681640625" bottom="0.798828125"/>
+                                </Texture>
+                                <Texture file="Interface\PetBattles\PetBattleHUD">
+                                    <Anchors>
+                                        <Anchor point="TOPLEFT" relativeKey="$parent.RightIcon" relativePoint="TOPLEFT" x="0" y="1"/>
+                                        <Anchor point="BOTTOMRIGHT" relativeKey="$parent.RightIcon" relativePoint="BOTTOMRIGHT" x="1" y="0"/>
+                                    </Anchors>
+                                    <TexCoords left="0.884765625" right="0.943359375" top="0.681640625" bottom="0.798828125"/>
+                                </Texture>
+                            </Layer>
+						</Layers>
+                    </Frame>
+                    <!-- ScrollFrame is main body of notes with scrollable editbox -->
+                    <ScrollFrame parentKey="ScrollFrame" inherits="MinimalScrollFrameTemplate">
+                        <Size x="260" y="262"/>
+                        <Anchors>
+                            <Anchor point="TOPLEFT" relativeKey="$parent.Top" relativePoint="BOTTOMLEFT" x="6" y="-8"/>
+                            <Anchor point="BOTTOMRIGHT" x="-26" y="8"/>
+                        </Anchors>
+                        <ScrollChild>
+                            <EditBox parentKey="EditBox" multiLine="true" autoFocus="false">
+                                <Size x="100" y="64"/> <!-- scrollframe handles height, we have to handle width -->
+                                <FontString inherits="GameFontHighlight"/>
+                                <Scripts>
+                                    <OnShow>
+                                        self:OnShow()
+                                    </OnShow>
+                                    <OnEscapePressed>
+                                        self:OnEscapePressed()
+                                    </OnEscapePressed>
+									<OnCursorChanged>
+										ScrollingEdit_OnCursorChanged(self,x,y,w,h)
+									</OnCursorChanged>
+									<OnUpdate>
+										ScrollingEdit_OnUpdate(self,elapsed,self:GetParent())
+									</OnUpdate>
+                                    <OnEditFocusGained>
+                                        self:OnEditFocusGained()
+                                    </OnEditFocusGained>
+                                    <OnEditFocusLost>
+                                        self:OnEditFocusLost()
+                                    </OnEditFocusLost>
+                                </Scripts>
+                            </EditBox>
+                        </ScrollChild>
+						<Frames>
+							<!-- this is a focus grabber for the editbox -->
+							<Button parentKey="FocusGrabber" registerForClicks="AnyDown">
+								<Anchors>
+									<Anchor point="TOPLEFT" relativeKey="$parent.ScrollFrame"/>
+									<Anchor point="BOTTOMRIGHT" relativeKey="$parent.ScrollFrame"/>
+								</Anchors>
+								<Scripts>
+									<OnClick>
+                                        self:OnClick()
+									</OnClick>
+								</Scripts>
+							</Button>
+							<Button parentKey="ResizeGrip">
+								<Size x="16" y="16"/>
+                                <HitRectInsets left="0" right="-8" top="0" bottom="-8"/>
+								<Anchors>
+									<Anchor point="BOTTOMRIGHT" x="23" y="-5"/>
+								</Anchors>
+								<NormalTexture file="Interface\ChatFrame\UI-ChatIM-SizeGrabber-Up"/>
+								<PushedTexture file="Interface\ChatFrame\UI-ChatIM-SizeGrabber-Down"/>
+								<HighlightTexture file="Interface\ChatFrame\UI-ChatIM-SizeGrabber-Highlight" alphaMode="ADD"/>
+								<Scripts>
+									<OnMouseDown>
+                                        self:OnMouseDown()
+									</OnMouseDown>
+									<OnMouseUp>
+                                        self:OnMouseUp()
+									</OnMouseUp>
+								</Scripts>
+							</Button>
+						</Frames>
+                    </ScrollFrame>
+                </Frames>
+                <Layers>
+                    <Layer level="BACKGROUND" textureSubLevel="-1">
+                        <!-- dark background over content from bottom of Top to bottom -->
+                        <Texture file="Interface\FrameGeneral\UI-Background-Marble" horizTile="true" vertTile="true">
+                            <Anchors>
+                                <Anchor point="TOPLEFT" x="3" y="-40"/>
+                                <Anchor point="BOTTOMRIGHT" x="-3" y="3"/>
+                            </Anchors>
+                        </Texture>
+                    </Layer>
+                </Layers>
+            </Frame>
+        </Frames>
+        <Scripts>
+            <OnMouseDown>
+                self:OnMouseDown()
+            </OnMouseDown>
+            <OnMouseUp>
+                self:OnMouseUp()
+            </OnMouseUp>
+        </Scripts>
+    </Frame>
+
+
+    <Script file="notes.lua"/>
+</Ui>
