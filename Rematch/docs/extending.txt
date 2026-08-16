@@ -1,0 +1,337 @@
+There are a few ways for outside addons to extend Rematch.
+
+Please be kind and don't make any changes to Rematch's saved variables. All effects of your addon to Rematch (noticable or not)
+should disappear if your addon is disabled.
+
+__ Events __
+
+Rematch uses an event dispatch system that outside addons can use:
+
+    Event                   Argument         When
+    REMATCH_UI_CONFIGURE      (none)           After the main Rematch window has changed configuration (minimized, panel changes, etc) or shows
+    REMATCH_UI_RESIZE         (none)           After the main Rematch window has resized
+    REMATCH_UI_UPDATE         (none)           After the main Rematch window has finished a global update of all shown panels
+    REMATCH_TEAM_LOADED       teamID           A team is loaded or unloaded (can be nil for a team unloaded)
+    REMATCH_TEAM_CREATED      teamID           After a new teamID is created
+    REMATCH_TEAM_DELETED      teamID           After a teamID is deleted
+    REMATCH_TEAM_UPDATED      teamID           After a teamID is changed (can be due to being overwritten by another team)
+    REMATCH_TEAM_OVERWRITTEN  teamID,oldTeamID Just before teamID is overwritten by oldTeamID (can be nil for import/received teams)
+    REMATCH_TEAMS_CHANGED     (none)           After any teams changed (happens after other REMATCH_TEAM events and before UI is updated)
+    REMATCH_TEAMS_CONVERTED   table            After Rematch 4 teams converted to Rematch 5 (see savedvars/convert.lua)
+    REMATCH_TEAMS_READY       (none)           After login when teams are settled
+    REMATCH_TEAMS_WIPED       (none)           After all teams are wiped by /rematch delete all teams
+    REMATCH_PETS_LOADED       (none)           After login and pets are believed to be loaded
+    REMATCH_PETS_CHANGED      (none)           After the pet roster has changed
+    REMATCH_NOTES_CHANGED     teamID/speciesID After notes for a team or pet changed or was deleted
+
+To register for these events:
+
+    Rematch.events:Register(frame,"EVENT_NAME",callbackFunction)
+
+Example:
+
+    local frame = CreateFrame("Frame") -- your frame, anything really
+    Rematch.events:Register(frame,"REMATCH_TEAM_LOADED",function(self,teamID)
+        local team = Rematch.savedTeams[teamID]
+        if team then
+            print("Team",team.name,"just loaded")
+        end
+    end)
+
+Notes:
+    - A REMATCH_UI_CONFIGURE will usually be followed by a REMATCH_UI_RESIZE and then REMATCH_UI_UPDATE
+    - A REMATCH_UI_RESIZE will usually be followed by a REMATCH_UI_UPDATE
+    - If you want to capture all configure/resize, you can just register for REMATCH_UI_UPDATE
+    - If you call Rematch.frame:Update() it will trigger a REMATCH_UI_UPDATE (careful to not get in a circular loop)
+    - On REMATCH_TEAM_OVERWRITTEN, when teams are imported and user choses to overwrite existing teams, the oldTeamID
+      will be nil. Generally the oldTeamID is not nil when a single team is edited or Save As over an existing one
+
+__ Teams __
+
+Teams are ultimately saved in Rematch5SavedTeams but I recommend not dealing with this table directly. Instead, use
+Rematch.savedTeams[teamID] instead, where teamID is something like "team:123" a unique identifier for a team.
+
+This is for getting information about teams. Please don't change them. If a team is broken, I will get blamed for it being
+broken and have no way of knowing what caused it or how to fix it. For instance, even disabling all other addons the team
+will still be broken so it would seem Rematch has the problem. Also, if a team changes in a way that the whole addon is
+broken, I would get blamed (disabling all other addons won't fix it) and have no idea of the cause or that the likely only
+fix is a total wipe of all teams.
+
+As an alternative to storing data in these teams, I recommend making your own savedvar indexed by teamID and watching
+for changes from the REMATCH_TEAM_CREATED/DELETED/UPDATED events above. Let me know if other events or methods are needed.
+
+For getting information about a teamID, a saved team has this format:
+
+    rematch.savedTeams[teamID] = {
+        teamID = "team:0", -- unique identifier of the team (required and persistent)
+        name = "", -- unique name of the team (required, case insensitive)
+        pets = {petID,petID,petID}, -- list of petIDs (or speciesIDs/"leveling"/"random:0"/"ignored") (required)
+        tags = {petTag,petTag,petTag}, -- list of petTags of petIDs (required; see process/petTags for structure)
+        [favorite = true,] -- whether team is favorited
+        [groupID = "group:0",] -- group for team (defaults to group:none)
+        [homeID = "group:0",] -- groupID the team belongs to when it's not favorited (or potential future group)
+        [notes = "",] -- notes for team
+        [targets = {targetID,targetID,targetID,...},] -- ordered list of targets (npcIDs)
+        [preferences = {minHP=0,maxHP=0,minXP=0,maxXP=0,allowMM=true,expectedDD=0},]
+        [winrecord = {wins=0,losses=0,draws=0,battles=0},]
+    }
+
+To iterate over all teamIDs:
+
+    for teamID,team in Rematch.savedTeams:AllTeams() do
+        print(team.name,"is teamID",teamID)
+    end
+
+
+__ Loaded Team __
+
+The currently-loaded teamID is Rematch.settings.currentTeamID. Just after this value changes, a REMATCH_TEAM_LOADED
+event will fire. If the currentTeamID or the teamID passed in the event is nil, it means a team was unloaded.
+
+Sometimes a team can be loaded that's not a saved team. These teamIDs include (but are not limited to):
+
+    "loadonly"  When a team is imported without saving with the "Load" button on the import dialog
+    "counter"   Random teams from the Load Random Team button (for a known targetID it will load counter pets/abilities)
+
+To tell if a teamID is a saved team, you can use:
+
+    local isSavedTeam = Rematch.savedTeams:IsUserTeam(teamID)
+
+
+__ PetInfo __
+
+Rematch makes extensive use of a petInfo system to minimize API calls when multiple functions are getting information
+about the same pet.
+
+As a rule, you Rematch.petInfo:Fetch(petID) to make a petID a pet of interest, and then get properties of the petInfo.
+When you fetch the same petID, it will use the cached results.
+
+For instance:
+
+    local petID = C_PetJournal.GetSummonedPetGUID()
+    local petInfo = Rematch.petInfo:Fetch(petID)
+    print("Summoned pet:",petInfo.isOwned and petInfo.name or "None")
+
+petInfo.isOwned says whether this is a pet you own. There are over 70 properties to a petInfo.
+
+A petID can be a BattlePet-0-etc GUID, or a numeric speciesID, or a variety of other IDs:
+
+    idType      example petID value    description
+    ----------  ---------------------  -----------------------------------
+    "pet"       "Battle-0-0000000etc"  a player-owned pet in the journal
+    "species"   42                     speciesID species number
+    "leveling"  0                      leveling slot
+    "ignored"   "ignored"              ignored slot
+    "link"      "battlepet:42:25:etc"  linked pet
+    "battle"    "battle:2:1"           pet in battle (battle:owner:index)
+    "random"    "random:10"            random mechanical pet (random:0 for any pet type)
+    "unnotable" "unnotable:npcID"      pet of a target not in targetData's notableTargets
+    "empty"     nil or "blank"         no pet
+    "unknown"   (anything else)        indecipherable/undefined pet
+
+See info\petInfo.lua for more details
+
+
+__ Adding Badges __
+
+    Badges are small non-interactive icons placed to the right of list buttons to show if
+    the pet is leveling, in a team, etc; or a team has a target, has preferences, etc;
+    or any purpose.
+
+    There are four lists:
+        "pets"    : pets in the pet list, queue or loadouts
+        "teams"   : teams in the team list
+        "targets" : targets in the target list (id is npcID)
+        "groups"  : team group headers
+
+    To register a badge (within this addon and outside it), use:
+
+    Rematch.badges:RegisterBadge(list,name,icon,coords,callback,override)
+
+        list (string) is one of the above four lists (can be anything but Rematch only adds badges for these)
+        name (string) is a unique-per-list identifier for the badge
+        icon (string,number,function) is the icon of the badge; if a function it should return a string/number icon
+        coords (table,function) is the texcoords of the badge; if a function it should return texcoords
+        callback (function) is a function that returns true if the given id's list/name badge should be shown
+        override (function) is a function that reutnrs true when a badge should show regardless of settings
+
+    Override is because an upcoming update will hide all badges unless the mouse is over the list button;
+    but some cases will want to show the badge(s) regardless, such as using pet herder
+
+This example creates a "cats" badge that puts a badge on pets with 'Cat' in their species name:
+
+    -- callback function to return whether the badge should be shown
+    local function isCat(petID)
+        local petInfo = Rematch.petInfo:Fetch(petID)
+        if petInfo.speciesName and petInfo.speciesName:match("Cat") then
+            return true
+        end
+    end
+
+    -- register "cats" badge
+    Rematch.badges:RegisterBadge("pets","cats","Interface\\Icons\\Ability_Druid_CatForm",{0.075,0.925,0.075,0.925},isCat)
+    -- update Rematch UI if it's on screen (if it's not on screen it will be updated when it's shown) to show badges
+    if Rematch.frame:IsVisible() then
+        Rematch.frame:Update()
+    end
+
+This example adds a black tabby cat badge to every team that has a black tabby cat:
+
+    -- callback function to return whether teamID has a black tabby cat
+    local function hasBlackTabby(teamID)
+        for _,petID in ipairs(Rematch.savedTeams[teamID].pets) do
+            local petInfo = Rematch.petInfo:Fetch(petID)
+            if petInfo.speciesID==42 then
+                return true
+            end
+        end
+    end
+
+    -- register "tabby" badge
+    Rematch.badges:RegisterBadge("teams","tabby","Interface\\Icons\\INV_Pet_Cats_BlackTabbyCat",{0.075,0.925,0.075,0.925},hasBlackTabby)
+    -- update Rematch UI if it's on screen (if it's not on screen it will be updated when it's shown) to show badges
+    if Rematch.frame:IsVisible() then
+        Rematch.frame:Update()
+    end
+
+Note: Rematch.frame:Update() is only needed when the Rematch UI is on screen and something changes that should update badges.
+When the addon is summoned or various other things (pets learned, teams saved, etc.) the UI will update badges automatically.
+
+__ Adding to Menus __
+
+Menus are built from an ordered list of subtables that define each menu item. For instance this is TeamMenu from menus/teamMenu.lua:
+
+    -- menu when you right-click a team in the team list
+    local teamMenu = {
+        {title=tm.GetTeamName},
+        {text=L["Unload Team"], hidden=tm.IsTeamNotLoaded, func=tm.UnloadTeam},
+        {text=L["Edit Team"], func=tm.EditTeam},
+        {text=L["Set Notes"], func=tm.SetNotes},
+        {text=L["Move Team"], func=tm.MoveTeam},
+        {text=L["Load Saved Target"], hidden=tm.NoSavedTarget, func=tm.LoadSavedTarget },
+        {text=tm.SetOrRemoveFavoriteText, func=tm.SetOrRemoveFavorite},
+        {text=L["Share"], subMenu="ShareTeamMenu"},
+        {text=L["Delete Team"], func=tm.DeleteTeam},
+        {text=CANCEL},
+    }
+    rematch.menus:Register("TeamMenu",teamMenu)
+
+It has a name "TeamMenu" that's used to show/reference the menu, and each item has properties, many of which can be a literal value
+or a function that returns it's value when the menu is shown.
+
+Note that even the text property can be a function. The function tm.SetOrRemoveFavoriteText is:
+
+    function rematch.teamMenu:SetOrRemoveFavoriteText(teamID)
+        local team = teamID and rematch.savedTeams[teamID]
+        return (team and team.favorite) and L["Remove Favorite"] or L["Set Favorite"]
+    end
+
+The argments passed to these functions are dependent on the menu's context. For team menus they'll pass a teamID,
+for pet menus they'll pass a petID, etc.
+
+To add to one of these menus, use:
+
+    Rematch.menus:AddToMenu(menuName,menuItem,afterText)
+
+Where menuName is the name of the menu ("TeamMenu" in example above), menuItem is a single menu item table, and afterText
+is the text property the new menu item should be placed after. If afterText is nil, then it will be placed at the start of
+the menu. If placing it aftter a text that's a function (like SetOrRemoveFavoriteText above) then use the function as
+the afterText.
+
+In the function called from the func property of the menuItem, the first argument is the menuItem itself, and the second
+(or further) is the context-specific subject.
+
+For instance:
+
+    local function printTeamID(self,teamID)
+    print("This is",teamID,"var is",self.var)
+    end
+
+    local menuItem = {text="Print TeamID", var=123, func=printTeamID}
+
+    Rematch.menus:AddToMenu("TeamMenu",menuItem)
+
+Note: While many properties can be a literal or a function, custom properties of a menuItem (like var above) are
+treated as a literal always.
+
+
+__ Pet Cards __
+
+An outside addon can easily add its own "stats" to the front of the pet card, which can be purely informational
+or can also be clickable. This example adds an Auction House Price button to pet cards of pets with "Cat" in
+their name, that could potentially open another window when clicked:
+
+    tinsert(Rematch.petCardStats,{
+        icon = "Interface\\Buttons\\UI-GroupLoot-Coin-Up",
+        tooltipTitle = "Auction House Price",
+        tooltipBody = Rematch.constants.LMB_TEXT_ICON.." Click for more details.",
+        show = function(self,petInfo)
+            return petInfo.name:match("Cat")
+        end,
+        value = function(self,petInfo)
+            return "500g"
+        end,
+        click = function(self,petInfo)
+            print("open another window here")
+        end
+    })
+
+See cards/petCardStats.lua to see more information and how other stats are defined.
+
+Also, any button can show a pet card by setting up an OnEnter, OnLeave and OnClick like below.
+
+Assuming 'self' is a reference to the button and self.petID contains the petID to show:
+
+    Rematch.cardManager:OnEnter(Rematch.petCard,self,self.petID)
+    Rematch.cardManager:OnLeave(Rematch.petCard,self,self.petID)
+    Rematch.cardManager:OnClick(Rematch.petCard,self,self.petID)
+
+The petID can be a full BattlePet-0-etc, or a speciesID like 42, a "link" like "battlepet:1339:25:5:2631:750:206",
+or "battle:2:1" for the enemy's first pet in battle, etc. See info/petInfo.lua for more about possible petIDs.
+
+
+__ Adding a Tab __
+
+Other addons can add their own tabs to Rematch with related panels shown when going to that tab, though there is not enough
+space for more tabs in the minimized and single-panel views. New tabs get added to the right of Options when space permits.
+
+More details is in layout/definitions.lua, but here is a basic example:
+
+    -- create a frame with Rematch.frame as its parent
+    local f = CreateFrame("Frame",nil,Rematch.frame,"RematchPanelInsetFrameTemplate")
+    f.hello = f:CreateFontString(nil,"ARTWORK","GameFontNormalHuge")
+    f.hello:SetAllPoints(true)
+    f.hello:SetText("Hello, TestPanel")
+
+    -- and make sure it has a parentKey to Rematch.frame
+    Rematch.frame.TestPanel = f -- set parentKey to Rematch.frame from above
+
+    -- set up definitions for the modes (0=minimized, 1=single panel, 2=dual panel, 3=triple panel)
+    local definitions = {
+        { -- add TestPanel to 3-panel modes
+            mode = 3, view = "test", width = 844, height = 520, tab = "Test",
+            panels = {
+            {"TeamsPanel","TOPLEFT","Canvas","TOPRIGHT",-280,0,"BOTTOMRIGHT","Canvas","BOTTOMRIGHT",0,0},
+            {"TestPanel","TOPLEFT","Canvas","TOPLEFT",0,0,"BOTTOMRIGHT","TeamsPanel","BOTTOMLEFT",-2,0}
+            }
+        },
+        { -- add TestPanel to 2-panel modes
+            mode = 2, view = "test", width = 562, height = 520, tab = "Test",
+            panels = {
+            {"TeamsPanel","TOPLEFT","Canvas","TOPRIGHT",-280,0,"BOTTOMRIGHT","Canvas","BOTTOMRIGHT",0,0},
+            {"TestPanel","TOPLEFT","Canvas","TOPLEFT",0,0,"BOTTOMRIGHT","TeamsPanel","BOTTOMLEFT",0,0}
+            }
+        },
+        { -- the tab won't be visible for single panel mode but this makes it visible in single panel
+            mode = 1, view = "test", width = 340, height = 520, tab = "Test",
+            panels = {
+            {"TestPanel","TOPLEFT","Canvas","TOPLEFT",0,0,"BOTTOMRIGHT","Canvas","BOTTOMRIGHT",0,0}
+            }
+        }
+    }
+
+    -- register layout definitions
+    for _,def in pairs(definitions) do
+        Rematch.layout:Register(def)
+    end
+

@@ -1,0 +1,29 @@
+<Ui>
+    <Script file="tooltip.lua"/>
+
+    <!-- standard tooltip for simple text -->
+    <Frame name="RematchTooltip" frameStrata="TOOLTIP" parent="UIParent" clampedToScreen="true" inherits="RematchShadowBackdropTemplate" hidden="true">
+        <Layers>
+			<Layer level="ARTWORK">
+				<FontString parentArray="Lines" inherits="GameTooltipHeaderText" justifyH="LEFT">
+					<Anchors>
+						<Anchor point="TOPLEFT" x="10" y="-10"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+        </Layers>
+        <Frames>
+            <!-- red tooltip border for flashing a warning tooltips -->
+            <Frame parentKey="RedBorder" setAllPoints="true" hidden="true" inherits="RematchBorderRedBackdropTemplate"/>
+        </Frames>
+        <Scripts>
+            <OnHide>
+                self:Hide() -- in case hidden by parent, don't reappear if parent does
+            </OnHide>
+        </Scripts>
+    </Frame>
+
+    <!-- a version of GameTooltip for item, spell and toy tooltips with the same backdrop as rematch's standard tooltip above -->
+    <GameTooltip name="RematchGameTooltip" frameStrata="TOOLTIP" parent="UIParent" inherits="GameTooltipTemplate,RematchShadowBackdropTemplate"/>
+
+</Ui>

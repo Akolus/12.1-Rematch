@@ -1,0 +1,254 @@
+<Ui>
+
+    <!-- horizontal line to break up sections of ability tooltip -->
+    <Texture name="RematchAbilityTooltipLineTemplate" file="Interface\Tooltips\UI-Tooltip-Border" virtual="true">
+        <Size x="0" y="5"/>
+        <Anchors>
+            <Anchor point="LEFT" relativePoint="TOPLEFT"/>
+            <Anchor point="RIGHT" relativePoint="TOPRIGHT"/>
+        </Anchors>
+        <TexCoords left="0.8125" right="0.9453125" top="0.625" bottom="0.9375"/>
+        <Color r="0.5" g="0.5" b="0.5"/>
+    </Texture>
+
+    <!-- the ability tooltip acts like a card with a slight delay before being shown; but it will never be mouse enabled -->
+    <Frame name="RematchAbilityTooltip" frameStrata="FULLSCREEN_DIALOG" parent="UIParent" clampedToScreen="true" hidden="true" inherits="RematchBorderBackdropTemplate">
+        <Size x="260" y="200"/>
+        <Anchors>
+            <Anchor point="CENTER" x="-200" y="0"/>
+        </Anchors>
+        <Frames>
+            <!-- top section with brown background; ability icon/type icon and ability name -->
+            <Frame parentKey="Top" useParentLevel="true">
+                <Size x="252" y="46"/>
+                <Anchors>
+                    <Anchor point="TOP" x="0" y="-4"/>
+                </Anchors>
+                <Layers>
+                    <Layer level="BACKGROUND">
+						<!-- brown gradient background to title area -->
+						<Texture parentKey="Back" file="Interface\PetBattles\PetJournal" setAllPoints="true">
+							<TexCoords left="0.19140625" right="0.65625" top="0.4873046875" bottom="0.5654296875"/>
+						</Texture>
+                    </Layer>
+                    <Layer level="BORDER">
+                        <!-- AbilityIcon is the topleft icon for the ability -->
+                        <Texture parentKey="AbilityIcon">
+                            <Size x="40" y="40"/>
+                            <Anchors>
+                                <Anchor point="TOPLEFT" x="3" y="-2"/>
+                            </Anchors>
+                        </Texture>
+                        <!-- mask for AbilityIcon -->
+                        <MaskTexture file="Interface\CharacterFrame\TempPortraitAlphaMask" hWrapMode="CLAMPTOBLACKADDITIVE" vWrapMode="CLAMPTOBLACKADDITIVE">
+                            <Anchors>
+                                <Anchor point="TOPLEFT" relativeKey="$parent.AbilityIcon" x="2" y="-2"/>
+                                <Anchor point="BOTTOMRIGHT" relativeKey="$parent.AbilityIcon" x="-2" y="2"/>
+                            </Anchors>
+                            <MaskedTextures>
+                                <MaskedTexture childKey="AbilityIcon"/>
+                            </MaskedTextures>
+                        </MaskTexture>
+                        <!-- TypeIcon is the topright icon for the ability type -->
+                        <Texture parentKey="TypeIcon">
+                            <Size x="40" y="40"/>
+                            <Anchors>
+                                <Anchor point="TOPRIGHT" x="-3" y="-2"/>
+                            </Anchors>
+                        </Texture>
+                        <!-- mask for TypeIcon -->
+                        <MaskTexture file="Interface\CharacterFrame\TempPortraitAlphaMask" hWrapMode="CLAMPTOBLACKADDITIVE" vWrapMode="CLAMPTOBLACKADDITIVE">
+                            <Anchors>
+                                <Anchor point="TOPLEFT" relativeKey="$parent.TypeIcon" x="2" y="-2"/>
+                                <Anchor point="BOTTOMRIGHT" relativeKey="$parent.TypeIcon" x="-2" y="2"/>
+                            </Anchors>
+                            <MaskedTextures>
+                                <MaskedTexture childKey="TypeIcon"/>
+                            </MaskedTextures>
+                        </MaskTexture>
+                    </Layer>
+                    <Layer level="ARTWORK">
+                        <!-- name of the ability in top of tooltip -->
+                        <FontString parentKey="Name" inherits="SystemFont_Shadow_Med1_Outline" justifyH="CENTER" justifyV="CENTER">
+							<Size x="0" y="54"/>
+                            <Anchors>
+                                <Anchor point="TOPLEFT" relativeKey="$parent.AbilityIcon" relativePoint="TOPRIGHT" x="0" y="3"/>
+                                <Anchor point="BOTTOMRIGHT" relativeKey="$parent.TypeIcon" relativePoint="BOTTOMLEFT" x="0" y="-5"/>
+                            </Anchors>
+							<Color r="1" g=".82" b=".5"/>
+                        </FontString>
+                    </Layer>
+                    <Layer level="OVERLAY">
+                        <!-- thin gold border around AbilityIcon -->
+                        <Texture file="Interface\PetBattles\PetBattleHUD">
+                            <Size x="40" y="40"/>
+                            <Anchors>
+                                <Anchor point="TOPLEFT" x="3" y="-2"/>
+                            </Anchors>
+                            <TexCoords left="0.884765625" right="0.943359375" top="0.681640625" bottom="0.798828125"/>
+                        </Texture>
+                        <!-- thin gold border around TypeIcon -->
+                        <Texture file="Interface\PetBattles\PetBattleHUD">
+                            <Size x="40" y="40"/>
+                            <Anchors>
+                                <Anchor point="TOPRIGHT" x="-3" y="-2"/>
+                            </Anchors>
+                            <TexCoords left="0.884765625" right="0.943359375" top="0.681640625" bottom="0.798828125"/>
+                        </Texture>
+                    </Layer>
+                </Layers>
+            </Frame>
+            <!-- bottom section with brown background; strong or weak against types -->
+            <Frame parentKey="Hints" useParentLevel="true">
+                <Size x="252" y="38"/>
+                <Anchors>
+                    <Anchor point="BOTTOM" x="0" y="4"/>
+                </Anchors>
+                <Layers>
+                    <Layer level="BACKGROUND">
+                        <!-- brown gradient background to hints area-->
+						<Texture parentKey="Back" file="Interface\PetBattles\PetJournal" setAllPoints="true">
+							<TexCoords left="0.19140625" right="0.65625" top="0.4873046875" bottom="0.5654296875"/>
+						</Texture>
+                    </Layer>
+                    <Layer level="BORDER">
+                        <!-- line above the hints section -->
+                        <Texture inherits="RematchAbilityTooltipLineTemplate"/>
+                    </Layer>
+                    <Layer level="ARTWORK">
+						<!-- "Vs" text between strong badge and strong type -->
+						<FontString parentKey="StrongVs" inherits="GameFontNormal">
+							<Anchors>
+								<Anchor point="CENTER" relativePoint="BOTTOMLEFT" x="54" y="18"/>
+							</Anchors>
+						</FontString>
+						<!-- StrongType is type attack is strong against; in lowerleft -->
+						<Texture parentKey="StrongType">
+							<Size x="30" y="30"/>
+							<Anchors>
+								<Anchor point="LEFT" relativeKey="$parent.StrongVs" relativePoint="CENTER" x="12" y="0"/>
+							</Anchors>
+							<TexCoords left="0.4921875" right="0.796875" top="0.50390625" bottom="0.65625"/>
+						</Texture>
+						<!-- strong badge -->
+						<Texture file="Interface\PetBattles\BattleBar-AbilityBadge-Strong">
+							<Size x="30" y="30"/>
+							<Anchors>
+								<Anchor point="RIGHT" relativeKey="$parent.StrongVs" relativePoint="CENTER" x="-10" y="0"/>
+							</Anchors>
+						</Texture>
+						<!-- "Vs" text between weak badge and weak type -->
+						<FontString parentKey="WeakVs" inherits="GameFontNormal">
+							<Anchors>
+								<Anchor point="CENTER" relativePoint="BOTTOMRIGHT" x="-54" y="18"/>
+							</Anchors>
+						</FontString>
+						<!-- WeakType is type attack is weak against; in lowerright -->
+						<Texture parentKey="WeakType">
+							<Size x="30" y="30"/>
+							<Anchors>
+								<Anchor point="LEFT" relativeKey="$parent.WeakVs" relativePoint="CENTER" x="12" y="0"/>
+							</Anchors>
+							<TexCoords left="0.4921875" right="0.796875" top="0.50390625" bottom="0.65625"/>
+						</Texture>
+						<!-- weak badge -->
+						<Texture file="Interface\PetBattles\BattleBar-AbilityBadge-Weak">
+							<Size x="30" y="30"/>
+							<Anchors>
+								<Anchor point="RIGHT" relativeKey="$parent.WeakVs" relativePoint="CENTER" x="-10" y="0"/>
+							</Anchors>
+						</Texture>
+						<!-- doodad between weak and strong -->
+						<Texture file="Interface\PetBattles\PetJournal">
+							<Size x="40" y="17"/>
+							<Anchors>
+								<Anchor point="BOTTOM" x="0" y="9"/>
+							</Anchors>
+							<TexCoords left="0.396484375" right="0.296875" top="0.3115234375" bottom="0.333984375"/>
+						</Texture>
+					</Layer>
+                </Layers>
+            </Frame>
+            <!-- middle section with grey background; ability cooldowns and description -->
+            <Frame parentKey="Details" useParentLevel="true">
+                <Size x="252" y="0"/>
+                <Anchors>
+                    <Anchor point="TOP" relativeKey="$parent.Top" relativePoint="BOTTOM"/>
+                    <Anchor point="BOTTOM" relativeKey="$parent.Hints" relativePoint="TOP"/>
+                </Anchors>
+                <Layers>
+                    <Layer level="BACKGROUND">
+                        <!-- background to main area -->
+                        <Texture parentKey="Back" file="Interface\FrameGeneral\UI-Background-Rock" horizTile="true" vertTile="true" setAllPoints="true"/>
+                    </Layer>
+                    <Layer level="BACKGROUND" textureSubLevel="1">
+                        <!-- background of ability icon and its mask -->
+                        <Texture parentKey="IconBackground" file="Interface\Icons\PetJournalPortrait" alpha="0.15">
+                            <Size x="64" y="64"/>
+                            <Anchors>
+                                <Anchor point="RIGHT"/>
+                            </Anchors>
+                            <TexCoords left="0.1" right="0.9" top="0.1" bottom="0.9"/>
+                        </Texture>
+                        <MaskTexture parentKey="FadeMask" file="Interface\AddOns\Rematch\textures\squirclemask">
+                            <Size x="64" Y="64"/>
+                            <Anchors>
+                                <Anchor point="RIGHT"/>
+                            </Anchors>
+                            <MaskedTextures>
+                                <MaskedTexture childKey="IconBackground"/>
+                            </MaskedTextures>
+                        </MaskTexture>
+                        <!-- background of ability type -->
+                        <Texture parentKey="TypeBackground" file="Interface\PetBattles\PetIcon-Critter">
+                            <Size x="64" y="64"/>
+                            <Anchors>
+                                <Anchor point="RIGHT"/>
+                            </Anchors>
+                            <TexCoords left="0.0390625" right="0.8671875" top="0" bottom="0.4140625"/>
+                        </Texture>
+                    </Layer>
+                    <Layer level="BACKGROUND" textureSubLevel="2">
+                        <!-- shadow over main area -->
+                        <Texture parentKey="Shadow" file="Interface\Common\ShadowOverlay-Corner" setAllPoints="true" alpha="1">
+                            <TexCoords left="0" right="1" top="1" bottom="0"/>
+                        </Texture>
+                    </Layer>
+                    <Layer level="BORDER">
+                        <!-- line above the Details section -->
+                        <Texture inherits="RematchAbilityTooltipLineTemplate"/>
+                    </Layer>
+                    <Layer level="ARTWORK">
+                        <FontString parentKey="Duration" inherits="GameFontHighlight" justifyH="LEFT">
+                            <Size x="238" y="0"/>
+                            <Anchors>
+                                <Anchor point="TOP" x="0" y="-4"/>
+                            </Anchors>
+                        </FontString>
+                        <FontString parentKey="Cooldown" inherits="GameFontHighlight" justifyH="LEFT">
+                            <Size x="238" y="0"/>
+                            <Anchors>
+                                <Anchor point="TOP" x="0" y="-4"/>
+                            </Anchors>
+                        </FontString>
+                        <FontString parentKey="Description" inherits="GameFontNormal" justifyH="LEFT">
+                            <Size x="238" y="0"/>
+                            <Anchors>
+                                <Anchor point="TOP" x="0" y="-4"/>
+                            </Anchors>
+                        </FontString>
+                        <FontString parentKey="AbilityID" inherits="GameFontNormalSmall" justifyH="LEFT">
+                            <Size x="238" y="0"/>
+                            <Anchors>
+                                <Anchor point="TOP" x="0" y="-4"/>
+                            </Anchors>
+                        </FontString>
+                    </Layer>
+                </Layers>
+            </Frame>
+        </Frames>
+
+    </Frame>
+
+    <Script file="abilityTooltip.lua"/>
+</Ui>

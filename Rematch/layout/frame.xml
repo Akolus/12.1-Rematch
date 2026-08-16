@@ -1,0 +1,32 @@
+<Ui>
+
+    <Button name="RematchFrame" parent="UIParent" topLevel="true" flattenRenderLayers="true" movable="true" clampedToScreen="true" inherits="RematchDefaultPanelTemplate" hidden="true">
+        <Size x="200" y="200"/>
+        <Anchors>
+            <Anchor point="CENTER"/>
+        </Anchors>
+        <Frames>
+            <Frame parentKey="Canvas"/> <!-- all panels are anchored relative to this -->
+        </Frames>
+        <Scripts>
+            <OnMouseDown>
+                self:OnMouseDown()
+            </OnMouseDown>
+            <OnMouseUp>
+                self:OnMouseUp()
+            </OnMouseUp>
+            <OnShow>
+                self:OnShow()
+            </OnShow>
+            <OnHide>
+                self:OnHide()
+            </OnHide>
+            <OnDoubleClick>
+                self:ToggleMinimized()
+            </OnDoubleClick>
+        </Scripts>
+    </Button>
+
+    <Script file="frame.lua"/>
+
+</Ui>

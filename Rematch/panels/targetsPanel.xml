@@ -1,0 +1,45 @@
+<Ui>
+
+    <Frame parentKey="TargetsPanel" parent="RematchFrame">
+        <Frames>
+            <!-- Top contains the options searchbar -->
+            <Frame parentKey="Top" inherits="RematchPanelInsetFrameTemplate">
+                <Size x="0" y="29"/>
+                <Anchors>
+                    <Anchor point="TOPLEFT"/>
+                    <Anchor point="TOPRIGHT"/>
+                </Anchors>
+                <Frames>
+                    <Button parentKey="AllButton" inherits="RematchAllButtonTemplate">
+                        <Anchors>
+                            <Anchor point="TOPLEFT" x="3" y="-3"/>
+                        </Anchors>
+                    </Button>
+                    <EditBox parentKey="SearchBox" inherits="RematchSearchBoxTemplate">
+                        <Anchors>
+                            <Anchor point="TOPLEFT" relativeKey="$parent.AllButton" relativePoint="TOPRIGHT" x="-1" y="0"/>
+                            <Anchor point="TOPRIGHT" x="-3" y="-3"/>
+                        </Anchors>
+                    </EditBox>
+                </Frames>
+            </Frame>
+            <!-- List -->
+            <Frame parentKey="List" inherits="RematchAutoScrollBoxTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.Top" relativePoint="BOTTOMLEFT" x="0" y="-2"/>
+                    <Anchor point="BOTTOMRIGHT"/>
+                </Anchors>
+            </Frame>
+        </Frames>
+        <Scripts>
+            <OnShow>
+                self:OnShow()
+            </OnShow>
+            <OnHide>
+                self:OnHide()
+            </OnHide>
+        </Scripts>
+    </Frame>
+
+    <Script file="targetsPanel.lua"/>
+</Ui>

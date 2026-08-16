@@ -1,0 +1,340 @@
+<Ui>
+
+    <Frame parentKey="LoadedTargetPanel" parent="RematchFrame" inherits="RematchInsetFrameTemplate">
+        <Layers>
+            <Layer level="BACKGROUND">
+                <Texture parentKey="InsetBack" file="Interface\PetBattles\PetJournalBigChunks" setAllPoints="true">
+                    <TexCoords left="0.171875" right="0.625" top="0" bottom="0.337890625"/>
+                </Texture>
+            </Layer>
+            <Layer level="ARTWORK">
+                <!-- target/team badge in topleft -->
+                <Texture parentKey="Badge" file="Interface\AddOns\Rematch\textures\badges">
+                    <Size x="18" y="18"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="5" y="-4"/>
+                    </Anchors>
+                    <TexCoords left="0.375" right="0.5" top="0.375" bottom="0.5"/>
+                </Texture>
+                <!-- name of target -->
+                <FontString parentKey="Name" inherits="GameFontHighlight" justifyH="LEFT" justifyV="CENTER" wordwrap="false">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="8" y="-8"/> <!-- x was 8 -->
+                        <Anchor point="TOPRIGHT" x="-8" y="-8"/>
+                    </Anchors>
+                </FontString>
+                <!-- the line beneath the name -->
+                <Texture parentKey="Underline" inherits="_UI-Frame-InnerTopTile">
+                    <Size x="182" y="3"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="8" y="-22"/> <!-- x was 8 -->
+                        <Anchor point="TOPRIGHT" x="-8" y="-22"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+        </Layers>
+        <Frames>
+            <Frame parentKey="Bling" inherits="RematchBlingAreaTemplate" setAllPoints="true"/>
+            <!-- clear button will clear the current target -->
+            <Button parentKey="ClearButton" inherits="RematchClearButtonTemplate">
+                <Anchors>
+                    <Anchor point="TOPRIGHT" x="-4" y="-3"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        self:OnClick()
+                    </OnClick>
+                </Scripts>
+            </Button>
+            <!-- portrait of the target to left of panel -->
+            <Frame parentKey="Portrait" hidden="true">
+                <Size x="44" y="44"/>
+                <Anchors>
+                    <Anchor point="BOTTOMLEFT" x="4" y="3"/>
+                </Anchors>
+                <Layers>
+                    <Layer level="BACKGROUND">
+                        <!-- actual portrait is SetPortraitTextureFromCreatureDisplayID to this Texture -->
+                        <Texture parentKey="Texture">
+                            <KeyValues>
+                                <KeyValue key="noAdapt" value="true" type="boolean"/>
+                            </KeyValues>
+                            <Anchors>
+                                <Anchor point="TOPLEFT" x="2" y="-2"/>
+                                <Anchor point="BOTTOMRIGHT" x="-2" y="2"/>
+                            </Anchors>
+                            <!-- <TexCoords left="0.1" right="0.9" top="0.1" bottom="0.9"/> -->
+                        </Texture>
+                    </Layer>
+                    <Layer level="OVERLAY">
+                        <Texture parentKey="Border" file="Interface\AddOns\Rematch\textures\teamborders" setAllPoints="true" hidden="true">
+                            <!-- <TexCoords left="0.25" right="0.421875" top="0.3125" bottom="0.484375"/> -->
+                            <TexCoords left="0" right="0.171875" top="0.7734375" bottom="0.9453125"/>
+                            <Color r="1" g="0.82" b="0"/>
+                        </Texture>
+                        <!-- thin gold border around button.Texture -->
+                        <Texture file="Interface\PetBattles\PetBattleHUD">
+                            <Anchors>
+                                <Anchor point="TOPLEFT" x="0" y="1"/>
+                                <Anchor point="BOTTOMRIGHT" x="1" y="0"/>
+                            </Anchors>
+                            <TexCoords left="0.884765625" right="0.943359375" top="0.681640625" bottom="0.798828125"/>
+                        </Texture>
+                    </Layer>
+                </Layers>
+            </Frame>
+            <!-- Enemy Team sits immediately to right of portrait, 1 to 3 pets if shown -->
+            <Frame parentKey="EnemyTeam" hidden="true">
+                <Size x="90" y="44"/>
+                <Anchors>
+                    <Anchor point="LEFT" relativeKey="$parent.Portrait" relativePoint="RIGHT" x="4" y="0"/>
+                </Anchors>
+                <Layers>
+                    <Layer level="ARTWORK">
+                        <Texture parentArray="Pets" mixin="RematchPetTextureMixin" file="Interface\Icons\INV_Misc_QuestionMark">
+                            <Size x="28" y="40"/>
+                            <Anchors>
+                                <Anchor point="TOPLEFT" x="2" y="-2"/>
+                            </Anchors>
+        					<TexCoords left="0.203125" right="0.796875" top="0.078125" bottom="0.921875"/>
+                            <Scripts>
+                                <OnEnter method="OnEnter"/>
+                                <OnLeave method="OnLeave"/>
+                                <OnMouseDown method="OnMouseDown"/>
+                                <OnMouseUp method="OnMouseUp"/>
+                            </Scripts>
+                        </Texture>
+                        <Texture parentArray="Pets" mixin="RematchPetTextureMixin" file="Interface\Icons\INV_Misc_QuestionMark">
+                            <Size x="28" y="40"/>
+                            <Anchors>
+						        <Anchor point="TOPLEFT" x="31" y="-2"/>
+                            </Anchors>
+        					<TexCoords left="0.203125" right="0.796875" top="0.078125" bottom="0.921875"/>
+                            <Scripts>
+                                <OnEnter method="OnEnter"/>
+                                <OnLeave method="OnLeave"/>
+                                <OnMouseDown method="OnMouseDown"/>
+                                <OnMouseUp method="OnMouseUp"/>
+                            </Scripts>
+                        </Texture>
+                        <Texture parentArray="Pets" mixin="RematchPetTextureMixin" file="Interface\Icons\INV_Misc_QuestionMark">
+                            <Size x="28" y="40"/>
+                            <Anchors>
+                                <Anchor point="TOPLEFT" x="60" y="-2"/>
+                            </Anchors>
+           					<TexCoords left="0.203125" right="0.796875" top="0.078125" bottom="0.921875"/>
+                            <Scripts>
+                                <OnEnter method="OnEnter"/>
+                                <OnLeave method="OnLeave"/>
+                                <OnMouseDown method="OnMouseDown"/>
+                                <OnMouseUp method="OnMouseUp"/>
+                            </Scripts>
+                        </Texture>
+                    </Layer>
+                    <Layer level="OVERLAY" textureSubLevel="1">
+                        <Texture parentKey="Border" file="Interface\AddOns\Rematch\textures\teamborders" setAllPoints="true">
+                            <TexCoords left="0" right="0.3515625" top="0" bottom="0.171875"/>
+                        </Texture>
+                    </Layer>
+                </Layers>
+            </Frame>
+            <!-- AllyTeam sits to the right of EnemyTeam with a vs sticking out to left -->
+            <Frame parentKey="AllyTeam" hidden="true">
+                <Size x="90" y="44"/>
+                <Anchors>
+                    <Anchor point="LEFT" relativeKey="$parent.EnemyTeam" relativePoint="RIGHT" x="20" y="0"/>
+                </Anchors>
+                <Layers>
+                    <Layer level="ARTWORK">
+                        <!-- small vs text between portrait and team-->
+                        <FontString parentKey="Vs" inherits="GameFontNormalSmall" text="vs">
+                            <Anchors>
+                                <Anchor point="RIGHT" relativePoint="LEFT" x="-4" y="0"/>
+                            </Anchors>
+                            <Color r="0.75" g="0.75" b="0.75"/>
+                        </FontString>
+                        <!-- pets for the target's team -->
+                        <Texture parentArray="Pets" mixin="RematchPetTextureMixin" file="Interface\Icons\INV_Misc_QuestionMark">
+                            <Size x="28" y="40"/>
+                            <Anchors>
+                                <Anchor point="TOPLEFT" x="2" y="-2"/>
+                            </Anchors>
+        					<TexCoords left="0.203125" right="0.796875" top="0.078125" bottom="0.921875"/>
+                            <Scripts>
+                                <OnEnter method="OnEnter"/>
+                                <OnLeave method="OnLeave"/>
+                                <OnMouseDown method="OnMouseDown"/>
+                                <OnMouseUp method="OnMouseUp"/>
+                            </Scripts>
+                        </Texture>
+                        <Texture parentArray="Pets" mixin="RematchPetTextureMixin" file="Interface\Icons\INV_Misc_QuestionMark">
+                            <Size x="28" y="40"/>
+                            <Anchors>
+						        <Anchor point="TOPLEFT" x="31" y="-2"/>
+                            </Anchors>
+        					<TexCoords left="0.203125" right="0.796875" top="0.078125" bottom="0.921875"/>
+                            <Scripts>
+                                <OnEnter method="OnEnter"/>
+                                <OnLeave method="OnLeave"/>
+                                <OnMouseDown method="OnMouseDown"/>
+                                <OnMouseUp method="OnMouseUp"/>
+                            </Scripts>
+                        </Texture>
+                        <Texture parentArray="Pets" mixin="RematchPetTextureMixin" file="Interface\Icons\INV_Misc_QuestionMark">
+                            <Size x="28" y="40"/>
+                            <Anchors>
+                                <Anchor point="TOPLEFT" x="60" y="-2"/>
+                            </Anchors>
+           					<TexCoords left="0.203125" right="0.796875" top="0.078125" bottom="0.921875"/>
+                            <Scripts>
+                                <OnEnter method="OnEnter"/>
+                                <OnLeave method="OnLeave"/>
+                                <OnMouseDown method="OnMouseDown"/>
+                                <OnMouseUp method="OnMouseUp"/>
+                            </Scripts>
+                        </Texture>
+                    </Layer>
+                    <Layer level="OVERLAY">
+                        <!-- a red X for dead or red haze for injured -->
+                        <Texture parentArray="Status" file="Interface\AddOns\Rematch\textures\petstatus" hidden="true">
+                            <Size x="28" y="40"/>
+                            <Anchors>
+                                <Anchor point="TOPLEFT" x="2" y="-2"/>
+                            </Anchors>
+                        </Texture>
+                        <Texture parentArray="Status" file="Interface\AddOns\Rematch\textures\petstatus" hidden="true">
+                            <Size x="28" y="40"/>
+                            <Anchors>
+                                <Anchor point="TOPLEFT" x="31" y="-2"/>
+                            </Anchors>
+                        </Texture>
+                        <Texture parentArray="Status" file="Interface\AddOns\Rematch\textures\petstatus" hidden="true">
+                            <Size x="28" y="40"/>
+                            <Anchors>
+                                <Anchor point="TOPLEFT" x="60" y="-2"/>
+                            </Anchors>
+                        </Texture>
+                    </Layer>
+                    <Layer level="OVERLAY" textureSubLevel="1">
+                        <Texture parentKey="Border" file="Interface\AddOns\Rematch\textures\teamborders" setAllPoints="true">
+                            <TexCoords left="0" right="0.3515625" top="0" bottom="0.171875"/>
+                        </Texture>
+                    </Layer>
+                </Layers>
+                <Frames>
+                    <Button parentKey="PrevTeamButton" inherits="RematchSmallGreyButtonTemplate">
+                        <KeyValues>
+                            <KeyValue key="icon" value="Interface\AddOns\Rematch\textures\texticons"/>
+                            <KeyValue key="coords" value="0.5,0.625,0.25,0.375"/>
+                        </KeyValues>
+                        <Anchors>
+                            <Anchor point="TOPLEFT" relativePoint="TOPRIGHT" x="0" y="1"/>
+                        </Anchors>
+                        <Scripts>
+                            <OnClick>
+                                self:OnClick()
+                            </OnClick>
+                        </Scripts>
+                    </Button>
+                    <Button parentKey="NextTeamButton" inherits="RematchSmallGreyButtonTemplate">
+                        <KeyValues>
+                            <KeyValue key="icon" value="Interface\AddOns\Rematch\textures\texticons"/>
+                            <KeyValue key="coords" value="0.625,0.75,0.25,0.375"/>
+                        </KeyValues>
+                        <Anchors>
+                            <Anchor point="BOTTOMLEFT" relativePoint="BOTTOMRIGHT" x="0" y="-1"/>
+                        </Anchors>
+                        <Scripts>
+                            <OnClick>
+                                self:OnClick()
+                            </OnClick>
+                        </Scripts>
+                    </Button>
+                </Frames>
+            </Frame>
+            <!-- big button for load/save for mini panel, not notable or not saved -->
+            <Button parentKey="BigLoadSaveButton" inherits="RematchGreyPanelButtonTemplate,RematchTooltipScripts">
+                <Size x="68" y="34"/>
+                <Anchors>
+                    <Anchor point="BOTTOMRIGHT" x="-8" y="6"/>
+                </Anchors>
+                <KeyValues>
+                    <KeyValue key="coord" value="68x34"/>
+                </KeyValues>
+                <Scripts>
+                    <OnClick>
+                        self:OnClick(button)
+                    </OnClick>
+                </Scripts>
+            </Button>
+            <!-- regular-sized load button for notable and saved -->
+            <Button parentKey="MediumLoadButton" inherits="RematchGreyPanelButtonTemplate,RematchTooltipScripts">
+                <Size x="68" y="24"/>
+                <Anchors>
+                    <Anchor point="TOPRIGHT" x="-3" y="-3"/>
+                </Anchors>
+                <KeyValues>
+                    <KeyValue key="coord" value="68x24"/>
+                </KeyValues>
+                <Scripts>
+                    <OnClick>
+                        self:OnClick(button)
+                    </OnClick>
+                </Scripts>
+            </Button>
+            <!-- small random button to load a random team -->
+            <Button parentKey="SmallRandomButton" inherits="RematchSmallGreyButtonTemplate,RematchTooltipScripts">
+                <KeyValues>
+                    <KeyValue key="icon" value="Interface\Icons\INV_Misc_Dice_01"/>
+                    <KeyValue key="coords" value="0.075,0.925,0.075,0.925"/>
+                </KeyValues>
+                <Scripts>
+                    <OnClick>
+                        self:OnClick(button)
+                    </OnClick>
+                </Scripts>
+            </Button>
+            <!-- small teams button for all targets -->
+            <Button parentKey="SmallTeamsButton" inherits="RematchSmallGreyButtonTemplate,RematchTooltipScripts">
+                <Anchors>
+                    <Anchor point="RIGHT" relativeKey="$parent.SmallRandomButton" relativePoint="LEFT" x="2" y="0"/>
+                </Anchors>
+                <KeyValues>
+                    <KeyValue key="icon" value="Interface\AddOns\Rematch\textures\texticons"/>
+                    <KeyValue key="coords" value="0.625,0.75,0.125,0.25"/>
+                </KeyValues>
+                <Scripts>
+                    <OnClick>
+                        self:OnClick(button)
+                    </OnClick>
+                </Scripts>
+            </Button>
+            <!-- small save button for saved -->
+            <Button parentKey="SmallSaveButton" inherits="RematchSmallGreyButtonTemplate,RematchTooltipScripts">
+                <Anchors>
+                    <Anchor point="RIGHT" relativeKey="$parent.SmallTeamsButton" relativePoint="LEFT" x="2" y="0"/>
+                </Anchors>
+                <KeyValues>
+                    <KeyValue key="icon" value="Interface\AddOns\Rematch\textures\texticons"/>
+                    <KeyValue key="coords" value="0.875,1,0,0.125"/>
+                </KeyValues>
+                <Scripts>
+                    <OnClick>
+                        self:OnClick(button)
+                    </OnClick>
+                </Scripts>
+            </Button>
+
+        </Frames>
+        <Scripts>
+            <OnShow>
+                self:OnShow()
+            </OnShow>
+            <OnHide>
+                self:OnHide()
+            </OnHide>
+        </Scripts>
+    </Frame>
+
+    <Script file="loadedTargetPanel.lua"/>
+</Ui>

@@ -1,0 +1,66 @@
+<Ui>
+    <Script file="toolbarButtons.lua"/>
+
+    <Button name="RematchToolbarButtonTemplate" mixin="RematchToolbarButtonMixin" registerForClicks="AnyUp,AnyDown" registerForDrag="LeftButton" inherits="SecureActionButtonTemplate" virtual="true" hidden="true">
+        <Size x="32" y="32"/>
+        <Layers>
+            <!-- Icon is in background layer so the border overlaps it-->
+            <Layer level="BACKGROUND">
+                <Texture parentKey="Icon">
+                    <Size x="28" y="28"/>
+                    <Anchors>
+                        <Anchor point="CENTER"/>
+                    </Anchors>
+                    <TexCoords left="0.075" right="0.925" top="0.075" bottom="0.925"/>
+                </Texture>
+            </Layer>
+            <Layer level="BORDER">
+                <!-- vertical line to left of the button to make it look more inset -->
+                <Texture parentKey="Border" file="Interface\FrameGeneral\GeneralFrameInsetBorders">
+                    <Size x="4" y="31"/>
+                    <Anchors>
+                        <Anchor point="BOTTOMLEFT" x="-2" y="0"/>
+                    </Anchors>
+                    <TexCoords left="0.25" right="0.3125" top="0" bottom="1"/>
+                </Texture>
+            </Layer>
+            <Layer level="OVERLAY">
+                <!-- red "down" arrow to cancel effect -->
+                <Texture parentKey="Cancel" file="Interface\Buttons\UI-MicroStream-Red" hidden="true">
+                    <Size x="24" y="24"/>
+                    <Anchors>
+                        <Anchor point="BOTTOMRIGHT" x="2" y="-2"/>
+                    </Anchors>
+                </Texture>
+                <!-- little number count in corner for items that have a quantity -->
+				<FontString parentKey="Count" inherits="SystemFont_Shadow_Med1_Outline">
+					<Anchors>
+						<Anchor point="BOTTOMRIGHT" x="-1" y="5"/>
+					</Anchors>
+				</FontString>
+            </Layer>
+        </Layers>
+        <Frames>
+            <!-- cooldown spinner -->
+            <Cooldown parentKey="Cooldown" inherits="CooldownFrameTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" x="1" y="-1"/>
+                    <Anchor point="BOTTOMRIGHT" x="-1" y="1"/>
+                </Anchors>
+            </Cooldown>
+        </Frames>
+        <Scripts>
+            <OnLoad method="OnLoad"/>
+            <OnEnter method="OnEnter"/>
+            <OnLeave method="OnLeave"/>
+            <OnMouseDown method="OnMouseDown"/>
+            <OnMouseUp method="OnMouseUp"/>
+            <OnShow method="OnMouseUp"/>
+            <PreClick method="PreClick"/>
+            <PostClick method="PostClick"/>
+            <OnDragStart method="OnDragStart"/>
+        </Scripts>
+    </Button>
+
+
+</Ui>

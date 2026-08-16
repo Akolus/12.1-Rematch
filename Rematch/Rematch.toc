@@ -1,0 +1,125 @@
+## Interface: 120100
+## Title: Rematch
+## Notes: A pet journal alternative for managing pets and teams
+## Author: Gello
+## Version: 5.3.1
+## SavedVariables: Rematch5Settings, Rematch5SavedTeams, Rematch5SavedGroups, Rematch5SavedTargets, Rematch4Saved, Rematch4Settings, RematchSaved, RematchSettings
+## IconTexture: Interface\AddOns\Rematch\textures\icon
+## AddonCompartmentFunc: RematchToggleWindow
+## Category-enUS: Pet Battles
+## Category-deDE: Haustierkämpfe
+## Category-esES: Duelos de mascotas
+## Category-esMX: Duelos de mascotas
+## Category-frFR: Combats de mascottes
+## Category-itIT: Mostra allenatori di mascotte
+## Category-koKR: 애완동물 대전
+## Category-ptBR: Batalhas de mascotes
+## Category-ruRU: Битвы питомцев
+## Category-zhCN: 宠物对战
+## Category-zhTW: 寵物對戰
+
+localization\localization.lua
+localization\localization-zhTW.lua
+
+main\constants.lua
+main\events.lua
+main\main.lua
+main\slash.lua
+
+savedvars\settings.lua
+savedvars\savedTeams.lua
+savedvars\savedGroups.lua
+savedvars\savedTargets.lua
+savedvars\convert.lua
+
+utils\utils.lua
+utils\debug.lua
+utils\timer.lua
+utils\odTable.lua
+utils\textureDrag.lua
+
+info\petInfo.lua
+info\speciesInfo.lua
+info\breedInfo.lua
+info\collectionInfo.lua
+info\targetData.lua
+info\targetInfo.lua
+info\allIcons.lua
+
+templates\templates.xml
+templates\autoScrollBox.xml
+templates\dropdown.xml
+templates\fillMixins.lua
+templates\petListButton.xml
+templates\teamListButton.xml
+utils\textureHighlight.lua
+
+roster\roster.lua
+roster\filters.lua
+roster\sort.lua
+
+layout\frame.xml
+layout\layout.lua
+layout\definitions.lua
+layout\journal.lua
+
+chrome\chromeMixins.lua
+chrome\bottombar.xml
+chrome\panelTabs.xml
+chrome\titlebar.xml
+chrome\toolbarButtons.xml
+chrome\toolbar.xml
+chrome\teamTabs.xml
+chrome\minimap.xml
+
+panels\loadedTargetPanel.xml
+panels\loadedTeamPanel.xml
+panels\loadoutPanelMixins.lua
+panels\loadoutPanel.xml
+panels\miniLoadoutPanel.xml
+panels\optionsList.lua
+panels\optionsPanel.xml
+panels\petsPanel.xml
+panels\queuePanel.xml
+panels\targetsPanel.xml
+panels\teamsPanel.xml
+
+menus\menus.xml
+menus\petFilterMenu.lua
+menus\petMenu.lua
+menus\targetMenu.lua
+menus\teamMenu.lua
+menus\loadoutMenu.lua
+menus\queueMenu.lua
+
+dialogs\dialog.xml
+dialogs\scriptFilter.xml
+dialogs\saveDialog.lua
+dialogs\importDialog.lua
+dialogs\summaryDialog.lua
+
+tooltips\tooltipManager.lua
+tooltips\tooltip.xml
+tooltips\abilityTooltip.xml
+
+cards\cardManager.lua
+cards\petCard.xml
+cards\notes.xml
+
+process\petTags.lua
+process\dragFrame.xml
+process\loadTeam.lua
+process\preferences.lua
+process\loadouts.lua
+process\randomPets.lua
+process\queue.lua
+process\toast.xml
+process\teamStrings.lua
+process\interact.lua
+process\winrecord.lua
+process\battle.lua
+process\enemyAbilities.lua
+process\rebuild.lua
+process\send.lua
+process\petHerder.lua
+process\badges.lua

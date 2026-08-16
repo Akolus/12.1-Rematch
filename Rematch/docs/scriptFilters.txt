@@ -1,0 +1,129 @@
+Script Filters are a way to create custom pet filters in Rematch with a little bit of Lua code.
+
+While it's not necessary to understand Lua to use script filters, a general understanding is expected
+to create new ones.
+
+__ Creating a new script __
+
+To create a script filter, you provide a name for the filter and code to run against each pet. This
+code should return true if the pet being evaluated should list, and false otherwise.
+
+For instance:
+
+    Script Name: Polished Pet Charms
+    Script Code: return (petInfo.sourceText or ""):match("item:163036") and true
+
+This script will list all pets that have "item:16306" in their source. (If you flip a card over and
+see the icon for a Polished Pet Charm near the top of the card, this is a texture with item:16306 in
+its name.)
+
+Optionally, you can add a -- comment in the first line of a script to give the filter a tooltip in
+the Script filter menu:
+
+    Script Name: Polished Pet Charm
+    Script Code: -- Pets with Polished Pet Charms in their source.
+                return (petInfo.sourceText or ""):match("item:163036") and true
+
+__ Exposed API __
+
+Your code runs in its own environment with no access to outside globals other than the following:
+
+    - Common Lua: print, table, string, format, pairs, ipairs, select, tonumber, tostring, random, type
+    - Blizzard API: C_PetJournal, C_PetBattles
+    - Two petInfos: petInfo - which has the pet being evaluated
+                    altInfo - for your use for comparison
+    - Iterators: AllPetIDs - iterator for all collected petIDs (always a string GUIDs)
+                 AllSpeciesIDs - iterator for all the obtainable speciesIDs (always a number)
+                 AllPets - iterator for all collected petIDs and uncollected speciesIDs (string or number)
+
+    To use an iterator:
+
+        for speciesID in AllSpeciesIDs() do
+            -- do something with speciesID
+        end
+
+    Some legacy stuff is still usable so old scripts don't break, but their use is discouraged:
+    - AllAbilities: iterator for all abilityID,abilityLevel of the pet (use petInfo.abilityList instead)
+    - GetBreed(): use petInfo.breedID instead
+    - GetSource(): use petInfo.sourceID instead
+    - IsPetLeveling(): use petInfo.isLeveling instead
+
+__ Variables __
+
+Just before your code runs for each pet, a petInfo is ready to query a lot of information about the
+pet being evaluated. As of this writing, you can use the following indexes into petInfo:
+
+        petID: this is the pet reference Fetched (string, number, link, etc)
+        idType: "pet" "species" "leveling" "ignored" "link" "battle" "random" or "unknown" (string)
+        speciesID: numeric speciesID of the pet (integer)
+        customName: user-renamed pet name (string)
+        speciesName: name of the species (string)
+        name: customName if defined, speciesName otherwise (string)
+        level: whole level 1-25 (integer)
+        xp: amount of xp in current level (integer)
+        maxXp: total xp to reach next level (integer)
+        fullLevel: level+xp/maxXp (float)
+        displayID: id of the pet's skin (integer)
+        isFavorite: whether pet is favorited (bool)
+        icon: fileID of pet's icon or specific filename (integer or string)
+        petType: numeric type of pet 1-10 (integer)
+        creatureID: npcID of summoned pet (integer)
+        sourceText: formatted text about where pet is from (string)
+        loreText: "back of the card" lore (string)
+        isWild: whether the pet is found in the wild (bool)
+        canBattle: whether pet can battle (bool)
+        isTradable: whether pet can be caged (bool)
+        isUnique: whether only one of pet can be learned (bool)
+        isObtainable: whether this pet is in the journal (bool)
+        health: current health of the pet (integer)
+        maxHealth: maximum health of the pet (integer)
+        power: power stat of the pet (integer)
+        speed: speed stat of the pet (integer)
+        rarity: rarity 1-4 of pet (integer)
+        isDead: whether the pet is dead (bool)
+        isInjured: whether the pet has less than max health (bool)
+        isSummonable: whether the pet can be summoned (bool)
+        isRevoked: whether the pet is revoked (bool)
+        abilityList: table of pet's abilities (table)
+        levelList: table of pet's ability levels (table)
+        valid: whether the petID is valid and petID is not missing (bool)
+        owned: whether the petID is a valid pet owned by the player (bool)
+        count: number of pet the player owns (integer)
+        maxCount: maximum number of this pet the player can own (integer)
+        hasBreed: whether pet can battle and there's a breed source (bool)
+        breedID: 3-12 for known breeds, 0 for unknown breed, nil for n/a (integer)
+        breedName: text version of breed like P/P or S/B (string)
+        possibleBreedIDs: list of breedIDs possible for the pet's species (table)
+        possibleBreedNames: list of breedNames possible for the pet's species (table)
+        numPossibleBreeds: number of known breeds for the pet (integer)
+        needsFanfare: whether a pet is wrapped (bool)
+        battleOwner: whether ally(1) or enemy(2) pet in battle (integer)
+        battleIndex: 1-3 index of pet in battle (integer)
+        isSlotted: whether pet is slotted (bool)
+        inTeams: whether pet is in any teams (pet and species idTypes only) (bool)
+        numTeams: number of teams the pet belongs to (pet and species only) (integer)
+        sourceID: the source index (1=Drop, 2=Quest, 3=Vendor, etc) of the pet (integer)
+        moveset: the exact moveset of the pet ("123,456,etc") (string)
+        speciesAt25: whether the pet has a version at level 25 (bool)
+        hasNotes: whether the pet has notes (bool)
+        notes: the text of the pet's notes (string)
+        isLeveling: whether the pet is in the queue (bool)
+        isSummoned: whether the pet is currently summoned (bool)
+        expansionID: the numeric index of the expansion the pet is from: 0=classic, 1=BC, 2=WotLK, etc. (integer)
+        expansionName: the name of the expansion the pet is from (string)
+        isSpecialType: whether the petid is a leveling, random or ignored (bool)
+        passive: the "racial" or passive text of the pet type (string)
+        shortHealthStatus: the numeric health at max health, or percent if injured, or DEAD if dead
+        longHealthStatus: a hp/maxHp (percent%) description of pet health
+
+While C_PetJournal and C_PetBattles are available, it's recommended to use a petInfo instead if it
+has the data you need, since the petInfo will cache values and only call the APIs it needs.
+
+See /info/petInfo.lua for more information.
+
+For older legacy scripts, the following variables are also defined but their use is discouraged
+(a future update will stop populating these values):
+
+    petID, speciesID, customName, level, xp, maxXp, displayID, isFavorite, name, icon, petType,
+    creatureID, sourceText, description, isWild, canBattle, abilityList, levelList 
+

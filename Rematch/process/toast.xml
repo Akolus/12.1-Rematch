@@ -1,0 +1,128 @@
+<Ui>
+
+	<Button name="RematchLevelingToastTemplate" parent="UIParent" hidden="true" frameStrata="DIALOG" virtual="true" inherits="AlertFrameTemplate">
+		<Size x="256" y="52"/>
+		<Anchors>
+			<Anchor point="BOTTOM" x="0" y="0"/>
+		</Anchors>
+		<Animations>
+			<AnimationGroup parentKey="animIn">
+				<Alpha fromAlpha="1" toAlpha="0" duration="0" order="1"/>
+				<Alpha fromAlpha="0" toAlpha="1" duration="0.2" order="2"/>
+			</AnimationGroup>
+			<AnimationGroup parentKey="waitAndAnimOut">
+				<Alpha startDelay="4.05" fromAlpha="1" toAlpha="0" duration="1.5" parentKey="animOut">
+					<Scripts>
+						<OnFinished>
+							self:GetRegionParent():Hide()
+						</OnFinished>
+					</Scripts>
+				</Alpha>
+			</AnimationGroup>
+		</Animations>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture parentKey="Background" file="Interface\AchievementFrame\UI-Achievement-Alert-Background-Mini">
+					<Anchors>
+						<Anchor point="LEFT" x="23" y="0"/>
+					</Anchors>
+				</Texture>
+				<FontString parentKey="Title" inherits="GameFontBlackTiny">
+					<Size x="200" y="0"/>
+					<Anchors>
+						<Anchor point="TOP">
+							<Offset x="23" y="-14"/>
+						</Anchor>
+					</Anchors>
+				</FontString>
+				<FontString parentKey="Name" inherits="GameFontHighlight">
+					<Size x="200" y="16"/>
+					<Anchors>
+						<Anchor point="TOP">
+							<Offset x="23" y="-26"/>
+						</Anchor>
+					</Anchors>
+				</FontString>
+			</Layer>
+			<Layer level="OVERLAY">
+				<Texture file="Interface\AchievementFrame\UI-Achievement-Alert-Glow" alphaMode="ADD" hidden="true" parentKey="glow">
+					<Size x="257" y="52"/>
+					<Anchors>
+						<Anchor point="CENTER" x="23" y="0"/>
+					</Anchors>
+					<Animations>
+						<AnimationGroup parentKey="animIn">
+							<Alpha fromAlpha="0" toAlpha="1" duration="0.2" order="1"/>
+							<Alpha fromAlpha="1" toAlpha="0" duration="0.5" order="2"/>
+							<Scripts>
+								<OnFinished>
+									self:GetParent():Hide()
+								</OnFinished>
+							</Scripts>
+						</AnimationGroup>
+					</Animations>
+					<TexCoords left="0" right="0.78125" top="0" bottom="0.66796875"/>
+				</Texture>
+				<Texture file="Interface\AchievementFrame\UI-Achievement-Alert-Glow" alphaMode="ADD" hidden="true" parentKey="shine">
+					<Size x="67" y="52"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" x="23" y="0"/>
+					</Anchors>
+					<Animations>
+						<AnimationGroup parentKey="animIn">
+							<Alpha fromAlpha="0" toAlpha="1" duration="0.2" order="1"/>
+							<Translation offsetX="210" offsetY="0" duration="0.85" order="2"/>
+							<Alpha startDelay="0.35" fromAlpha="1" toAlpha="0" duration="0.5" order="2"/>
+							<Scripts>
+								<OnFinished>
+									self:GetParent():Hide()
+								</OnFinished>
+							</Scripts>
+						</AnimationGroup>
+					</Animations>
+					<TexCoords left="0.78125" right="0.912109375" top="0" bottom="0.28125"/>
+				</Texture>
+			</Layer>
+		</Layers>
+		<Frames>
+			<Frame parentKey="Icon">
+				<Size x="116" y="116"/>
+				<Anchors>
+					<Anchor point="LEFT" x="-44" y="0"/>
+				</Anchors>
+				<Layers>
+					<Layer level="BORDER">
+						<Texture parentKey="Bling" file="Interface\AchievementFrame\UI-Achievement-Bling" hidden="true">
+							<Anchors>
+								<Anchor point="CENTER" x="-1" y="1"/>
+							</Anchors>
+							<Size x="116" y="116"/>
+						</Texture>
+					</Layer>
+					<Layer level="ARTWORK">
+						<Texture parentKey="Texture">
+							<Anchors>
+								<Anchor point="CENTER" x="0" y="3"/>
+							</Anchors>
+							<Size x="50" y="50"/>
+						</Texture>
+					</Layer>
+					<Layer level="OVERLAY">
+						<Texture parentKey="Overlay" file="Interface\AchievementFrame\UI-Achievement-IconFrame">
+							<Anchors>
+								<Anchor point="CENTER" x="-1" y="2"/>
+							</Anchors>
+							<Size x="72" y="72"/>
+							<TexCoords left="0" right="0.5625" top="0" bottom="0.5625"/>
+						</Texture>
+					</Layer>
+				</Layers>
+			</Frame>
+		</Frames>
+		<!-- <Scripts>
+			<OnClick function="AchievementAlertFrame_OnClick"/>
+		</Scripts> -->
+	</Button>
+
+    <Script file="toast.lua"/>
+</Ui>

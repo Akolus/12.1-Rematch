@@ -1,0 +1,98 @@
+<Ui>
+
+    <Frame parentKey="TitleBar" parent="RematchFrame">
+        <Size x="0" y="24"/>
+        <Anchors>
+            <Anchor point="TOPLEFT"/>
+            <Anchor point="TOPRIGHT"/>
+        </Anchors>
+        <Layers>
+            <Layer level="ARTWORK">
+                <FontString parentKey="Title" inherits="GameFontNormal">
+                    <Anchors>
+                        <Anchor point="CENTER" x="0" y="0"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+        <Frames>
+            <!-- portrait displayed in topleft while attached to journal -->
+            <Frame parentKey="Portrait">
+                <Size x="60" y="60"/>
+                <Anchors>
+                    <Anchor point="TOPLEFT" x="2" y="0"/>
+                </Anchors>
+                <Layers>
+                    <!-- the portrait icon -->
+                    <Layer level="OVERLAY" textureSubLevel="1">
+                        <Texture parentKey="Icon" file="Interface\Icons\PetJournalPortrait">
+                            <Size x="60" y="60"/>
+                            <Anchors>
+                                <Anchor point="TOPLEFT" x="-6" y="7"/>
+                            </Anchors>
+                        </Texture>
+                        <MaskTexture parentKey="CircleMask" file="Interface\CharacterFrame\TempPortraitAlphaMask">
+                            <Size x="60" Y="60"/>
+                            <Anchors>
+                                <Anchor point="TOPLEFT" x="-6" y="7"/>
+                            </Anchors>
+                            <MaskedTextures>
+                                <MaskedTexture childKey="Icon"/>
+                            </MaskedTextures>
+                        </MaskTexture>
+                    </Layer>
+                    <!-- the portrait border -->
+                    <Layer level="OVERLAY" textureSubLevel="2">
+                        <Texture atlas="UI-Frame-PortraitMetal-CornerTopLeft" useAtlasSize="true">
+                            <Anchors>
+                                <Anchor point="TOPLEFT" x="-14" y="16"/>
+                            </Anchors>
+                        </Texture>
+                    </Layer>
+                </Layers>
+            </Frame>
+            <Button parentKey="CloseButton" inherits="RematchTitlebarButtonTemplate">
+                <Anchors>
+                    <Anchor point="TOPRIGHT" x="-1" y="-1"/>
+                </Anchors>
+                <KeyValues>
+                    <KeyValue key="icon" value="close"/>
+                </KeyValues>
+            </Button>
+            <Button parentKey="MinimizeButton" inherits="RematchTitlebarButtonTemplate">
+                <Anchors>
+                    <Anchor point="TOPRIGHT" relativeKey="$parent.CloseButton" relativePoint="TOPLEFT" x="0" y="0"/>
+                </Anchors>
+                <KeyValues>
+                    <KeyValue key="icon" value="minimize"/>
+                </KeyValues>
+            </Button>
+            <Button parentKey="LockButton" inherits="RematchTitlebarButtonTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" x="1" y="-1"/>
+                </Anchors>
+                <KeyValues>
+                    <KeyValue key="icon" value="lock"/>
+                </KeyValues>
+            </Button>
+            <Button parentKey="PrevModeButton" inherits="RematchTitlebarButtonTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.LockButton" relativePoint="TOPRIGHT" x="0" y="0"/>
+                </Anchors>
+                <KeyValues>
+                    <KeyValue key="icon" value="left"/>
+                </KeyValues>
+            </Button>
+            <Button parentKey="NextModeButton" inherits="RematchTitlebarButtonTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.PrevModeButton" relativePoint="TOPRIGHT" x="0" y="0"/>
+                </Anchors>
+                <KeyValues>
+                    <KeyValue key="icon" value="right"/>
+                </KeyValues>
+            </Button>
+        </Frames>
+    </Frame>
+
+    <Script file="titlebar.lua"/>
+</Ui>

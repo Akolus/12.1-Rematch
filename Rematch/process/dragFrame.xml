@@ -1,0 +1,211 @@
+<Ui>
+    <!-- The cursor can't be changed while over WorldFrame, so this frame acts as a backdrop beneath the UI
+         so the cursor can remain an ITEM_CURSOR while dragging. (it also serves to capture clicks to drop
+         the stuff off the cursor.) -->
+    <Button name="RematchDragFrame" parent="UIParent" registerForClicks="AnyUp" frameStrata="LOW" setAllPoints="true" hidden="true">
+        <Frames>
+            <!-- a group header "picked up" on the cursor (this is continually positioned at the cursor) -->
+            <Frame parentKey="Group" frameStrata="TOOLTIP">
+                <Size x="0" y="36"/>
+                <Layers>
+                    <Layer level="BACKGROUND">
+                        <Texture file="Interface\AddOns\Rematch\textures\headers">
+                            <Size x="8" y="26"/>
+                            <Anchors>
+                                <Anchor point="LEFT"/>
+                            </Anchors>
+                            <TexCoords left="0" right="0.015625" top="0" bottom="0.40625"/>
+                        </Texture>
+                        <Texture file="Interface\AddOns\Rematch\textures\headers">
+                            <Size x="0" y="26"/>
+                            <Anchors>
+                                <Anchor point="LEFT" x="8" y="0"/>
+                                <Anchor point="RIGHT" x="-8" y="0"/>
+                            </Anchors>
+                            <TexCoords left="0.015625" right="0.478515625" top="0" bottom="0.40625"/>
+                        </Texture>
+                        <Texture file="Interface\AddOns\Rematch\textures\headers">
+                            <Size x="8" y="26"/>
+                            <Anchors>
+                                <Anchor point="RIGHT"/>
+                            </Anchors>
+                            <TexCoords left="0.478515625" right="0.494140625" top="0" bottom="0.40625"/>
+                        </Texture>                    
+                        <!-- <Texture file="Interface\AddOns\Rematch\textures\headers">
+                            <Size x="26" y="26"/>
+                            <Anchors>
+                                <Anchor point="LEFT"/>
+                            </Anchors>
+                            <TexCoords left="0" right="0.05078125" top="0" bottom="0.40625"/>
+                        </Texture>
+                        <Texture file="Interface\AddOns\Rematch\textures\headers">
+                            <Size x="26" y="26"/>
+                            <Anchors>
+                                <Anchor point="RIGHT"/>
+                            </Anchors>
+                            <TexCoords left="0.4296875" right="0.48046875" top="0" bottom="0.40625"/>
+                        </Texture>
+                        <Texture file="Interface\AddOns\Rematch\textures\headers">
+                            <Size x="26" y="26"/>
+                            <Anchors>
+                                <Anchor point="LEFT" x="26" y="0"/>
+                                <Anchor point="RIGHT" x="-26" y="0"/>
+                            </Anchors>
+                            <TexCoords left="0.05078125" right="0.4296875" top="0" bottom="0.40625"/>
+                        </Texture> -->
+                    </Layer>
+                    <Layer level="BORDER">
+                        <Texture parentKey="Icon">
+                            <Size x="18" y="18"/>
+                            <Anchors>
+                                <Anchor point="RIGHT" x="-4" y="0"/>
+                            </Anchors>
+                            <TexCoords left="0.075" right="0.925" top="0.075" bottom="0.925"/>
+                        </Texture>
+                        <MaskTexture parentKey="IconMask" file="Interface\CharacterFrame\TempPortraitAlphaMask">
+                            <Size x="18" Y="18"/>
+                            <Anchors>
+                                <Anchor point="RIGHT" x="-4" y="0"/>
+                            </Anchors>
+                            <MaskedTextures>
+                                <MaskedTexture childKey="Icon"/>
+                            </MaskedTextures>
+                        </MaskTexture>
+                    </Layer>
+                    <Layer level="ARTWORK">
+                        <FontString parentKey="Name" inherits="GameFontNormal" wordwrap="false">
+                            <Anchors>
+                                <Anchor point="LEFT" x="6" y="0"/>
+                            </Anchors>
+                        </FontString>
+                        <!-- thin gold border around button.Icon -->
+                        <Texture parentKey="Border" file="Interface\PetBattles\PetBattleHUD">
+                            <Size x="18" y="18"/>
+                            <Anchors>
+                                <Anchor point="RIGHT" x="-4" y="0"/>
+                            </Anchors>
+                            <TexCoords left="0.884765625" right="0.943359375" top="0.681640625" bottom="0.798828125"/>
+                        </Texture>
+                    </Layer>
+                </Layers>
+            </Frame>
+            <!-- the team "picked up" on the cursor (this is continually positioned at the cursor) -->
+            <Frame parentKey="Team" frameStrata="TOOLTIP">
+                <Size x="78" y="36"/>
+                <Layers>
+                    <Layer level="ARTWORK">
+                        <Texture parentArray="Pets" file="Interface\Icons\INV_Misc_QuestionMark">
+                            <Size x="22" y="22"/>
+                            <Anchors>
+                                <Anchor point="TOPLEFT" x="2" y="-2"/>
+                            </Anchors>
+                            <TexCoords left="0.075" right="0.925" top="0.075" bottom="0.925"/>
+                        </Texture>
+                        <Texture parentArray="Pets" file="Interface\Icons\INV_Misc_QuestionMark">
+                            <Size x="22" y="22"/>
+                            <Anchors>
+                                <Anchor point="TOPLEFT" x="25" y="-2"/>
+                            </Anchors>
+                            <TexCoords left="0.075" right="0.925" top="0.075" bottom="0.925"/>
+                        </Texture>
+                        <Texture parentArray="Pets" file="Interface\Icons\INV_Misc_QuestionMark">
+                            <Size x="22" y="22"/>
+                            <Anchors>
+                                <Anchor point="TOPLEFT" x="48" y="-2"/>
+                            </Anchors>
+                            <TexCoords left="0.075" right="0.925" top="0.075" bottom="0.925"/>
+                        </Texture>
+                    </Layer>
+                    <Layer level="OVERLAY">
+                        <!-- border over the pet icons -->
+                        <Texture parentKey="Border" file="Interface\AddOns\Rematch\textures\teamborders">
+                            <Size x="72" y="26"/>
+                            <Anchors>
+                                <Anchor point="TOPLEFT"/>
+                            </Anchors>
+                            <TexCoords left="0" right="0.28125" top="0.1875" bottom="0.2890625"/>
+                        </Texture>
+                    </Layer>
+                </Layers>
+            </Frame>
+            <!-- stretched over teams/targets panels, contains a glow line/area to show where a team/group dropped -->
+            <Frame parentKey="GlowFrame" clipChildren="true" frameStrata="DIALOG" hidden="true">
+                <Frames>
+                    <!-- glowing/pulsing line that appears where a team/group will be inserted -->
+                    <Frame parentKey="GlowLine" hidden="true">
+                        <Size x="248" y="8"/>
+                        <Layers>
+                            <Layer level="ARTWORK">
+                                <Texture file="Interface\AddOns\Rematch\textures\glowline" alphaMode="ADD">
+                                    <Size x="10" y="8"/>
+                                    <Anchors>
+                                        <Anchor point="LEFT"/>
+                                    </Anchors>
+                                    <TexCoords left="0" right="0.3125" top="0" bottom="0.625"/>
+                                </Texture>
+                                <Texture file="Interface\AddOns\Rematch\textures\glowline" alphaMode="ADD">
+                                    <Size x="10" y="8"/>
+                                    <Anchors>
+                                        <Anchor point="RIGHT"/>
+                                    </Anchors>
+                                    <TexCoords left="0.84375" right="1" top="0" bottom="0.625"/>
+                                </Texture>
+                                <Texture file="Interface\AddOns\Rematch\textures\glowline" alphaMode="ADD">
+                                    <Size x="0" y="8"/>
+                                    <Anchors>
+                                        <Anchor point="LEFT" x="10" y="0"/>
+                                        <Anchor point="RIGHT" x="-10" y="0"/>
+                                    </Anchors>
+                                    <TexCoords left="0.3125" right="0.84375" top="0" bottom="0.625"/>
+                                </Texture>
+                            </Layer>
+                        </Layers>
+                        <Animations>
+                            <AnimationGroup parentKey="Animation" looping="BOUNCE">
+                                <Alpha fromAlpha="0.25" toAlpha="1" duration="0.9" order="1"/>
+                                <Alpha fromAlpha="1" toAlpha="0.25" duration="0.9" order="2"/>
+                            </AnimationGroup>
+                        </Animations>
+                    </Frame>
+                    <!-- glowing/pulsing area that appears over a group header or tab where a team will go -->
+                    <Frame parentKey="GlowArea" hidden="true">
+                        <Layers>
+                            <Layer level="ARTWORK">
+                                <Texture file="Interface\Archeology\arch-flareeffect" alphaMode="ADD" alpha="0.75">
+                                    <Anchors>
+                                        <Anchor point="TOPLEFT" x="2" y="-2"/>
+                                        <Anchor point="BOTTOMRIGHT" x="-2" y="2"/>
+                                    </Anchors>
+                                    <TexCoords left="0.201171875" right="0.716796875" top="0.125" bottom="0.208984375"/>
+                                </Texture>
+                            </Layer>
+                        </Layers>
+                        <Animations>
+                            <AnimationGroup parentKey="Animation" looping="BOUNCE">
+                                <Alpha fromAlpha="0.25" toAlpha="1" duration="0.9" order="1"/>
+                                <Alpha fromAlpha="1" toAlpha="0.25" duration="0.9" order="2"/>
+                            </AnimationGroup>
+                        </Animations>
+                    </Frame>
+                </Frames>
+            </Frame>
+        </Frames>
+        <Scripts>
+            <OnShow>
+                self:OnShow()
+            </OnShow>
+            <OnHide>
+                self:OnHide()
+            </OnHide>
+            <OnUpdate>
+                self:OnUpdate(elapsed)
+            </OnUpdate>
+            <OnClick>
+                self:OnClick(button)
+            </OnClick>
+        </Scripts>
+    </Button>
+
+    <Script file="dragFrame.lua"/>
+
+</Ui>

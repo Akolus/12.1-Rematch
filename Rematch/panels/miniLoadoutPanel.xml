@@ -1,0 +1,402 @@
+<Ui>
+
+    <!-- this is used not only for the three abilities in each loadout slot but for the flyout's two ability buttons -->
+    <Button name="RematchMiniAbilityBarButtonTemplate" mixin="RematchAbilityBarButtonMixin" registerForClicks="AnyUp" useParentLevel="true" virtual="true">
+        <Size x="22" y="22"/>
+        <HitRectInsets left="-2" right="-2" top="-2" bottom="-2"/>
+        <Layers>
+            <Layer level="BORDER">
+                <!-- the icon of the ability -->
+                <Texture parentKey="Icon" setAllPoints="true">
+                    <TexCoords left="0.075" right="0.925" top="0.075" bottom="0.925"/>
+                </Texture>
+            </Layer>
+            <Layer level="OVERLAY">
+                <!-- the tiny 1/2 in the bottomright for ability number (border shares this drawlayer) -->
+                <FontString parentKey="Number" inherits="SystemFont_Tiny">
+                    <Anchors>
+                        <Anchor point="CENTER" relativePoint="BOTTOMRIGHT" x="-4" y="4"/>
+                    </Anchors>
+                </FontString>
+                <!-- the large red level nuumber in center -->
+                <FontString parentKey="Level" inherits="GameFontNormalLarge">
+                    <Anchors>
+                        <Anchor point="CENTER"/>
+                    </Anchors>
+                    <Color r="1" g="0.25" b="0.25"/>
+                </FontString>
+            </Layer>
+        </Layers>
+        <Scripts>
+            <OnEnter method="OnEnter"/>
+            <OnLeave method="OnLeave"/>
+            <OnMouseDown method="OnMouseDown"/>
+            <OnMouseUp method="OnMouseUp"/>
+            <OnClick method="OnClick"/>
+        </Scripts>
+    </Button>
+
+    <!-- a loadout slot is a single pet and its abilities and status bars -->
+    <Button name="RematchMiniLoadoutTemplate" mixin="RematchFillPetMixin" registerForDrag="LeftButton" registerForClicks="AnyUp" inherits="RematchInsetFrameTemplate" virtual="true">
+        <Layers>
+            <!-- brown background to pet slot -->
+            <Layer level="BACKGROUND" textureSubLevel="-1">
+                <Texture parentKey="Back" file="Interface\PetBattles\PetJournal">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="3" y="-3"/>
+                        <Anchor point="BOTTOMRIGHT" x="-3" y="3"/>
+                    </Anchors>
+                    <TexCoords left="0.1875" right="0.662109375" top="0.486328125" bottom="0.591796875"/>
+                </Texture>
+            </Layer>
+            <!-- the pet is not a button but Icon/Status/Border/Favorite/Level textures-->
+            <Layer level="BORDER">
+                <!-- main icon of the pet -->
+                <Texture parentKey="Icon">
+                    <Size x="40" y="40"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="2" y="-2"/>
+                    </Anchors>
+                    <TexCoords left="0.075" right="0.925" top="0.075" bottom="0.925"/>
+                </Texture>
+            </Layer>
+            <Layer level="BACKGROUND">
+                <!-- yellow glow around/behind pet icon that flashes from Animation defined after layers below -->
+                <Texture parentKey="Glow" file="Interface/BUTTONS/CheckButtonHilight" alphaMode="ADD" hidden="true">
+                    <Size x="54" y="54"/>
+                    <Anchors>
+                        <Anchor point="CENTER" relativeKey="$parent.Icon" relativePoint="CENTER"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+            <Layer level="BORDER" textureSubLevel="2">
+                <!-- a red X for dead or red haze for injured -->
+				<Texture parentKey="Status" file="Interface\AddOns\Rematch\textures\petstatus" hidden="true">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Icon" relativePoint="TOPLEFT" x="-2" y="2"/>
+                        <Anchor point="BOTTOMRIGHT" relativeKey="$parent.Icon" relativePoint="BOTTOMRIGHT" x="2" y="-2"/>
+                    </Anchors>
+                </Texture>
+                <!-- background of top status bar, the hp bar for pets below 25 (not shown for pets at 25) -->
+                <Texture parentKey="TopStatusBarBack">
+                    <Size x="40" y="8"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Icon" relativePoint="BOTTOMLEFT" x="1" y="-10"/>
+                    </Anchors>
+                    <Color r="0.1" g="0.1" b="0.1" a="0.75"/>
+                </Texture>
+                <!-- background of bottom status bar, either hp bar for 25 pets or xp bar for pets below 25 -->
+                <Texture parentKey="BottomStatusBarBack">
+                    <Size x="40" y="8"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Icon" relativePoint="BOTTOMLEFT" x="1" y="-24"/>
+                    </Anchors>
+                    <Color r="0.1" g="0.1" b="0.1" a="0.75"/>
+                </Texture>
+            </Layer>
+            <Layer level="ARTWORK">
+                <!-- grey (or rarity-colored) border around the pet -->
+                <Texture parentKey="Border" file="Interface\AddOns\Rematch\textures\borders">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Icon" relativePoint="TOPLEFT" x="-2" y="2"/>
+                        <Anchor point="BOTTOMRIGHT" relativeKey="$parent.Icon" relativePoint="BOTTOMRIGHT" x="2" y="-2"/>
+                    </Anchors>
+                    <TexCoords left="0" right="0.171875" top="0" bottom="0.171875"/>
+                </Texture>
+                <!-- the colored progress bar of the top status bar, the hp bar for pets below 25 (not shown for pets at 25) -->
+                <Texture parentKey="TopStatusBar" file="Interface\TargetingFrame\UI-StatusBar">
+                    <Size x="38" y="6"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Icon" relativePoint="BOTTOMLEFT" x="2" y="-11"/>
+                    </Anchors>
+                </Texture>
+                <!-- the colored progress bar of the bottom status bar, either hp bar for 25 pets or xp bar for pets below 25 -->
+                <Texture parentKey="BottomStatusBar" file="Interface\TargetingFrame\UI-StatusBar">
+                    <Size x="38" y="6"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Icon" relativePoint="BOTTOMLEFT" x="2" y="-25"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+            <Layer level="OVERLAY">
+                <!-- favorite star in topleft corner-->
+                <Texture parentKey="Favorite" atlas="PetJournal-FavoritesIcon" hidden="true">
+                    <Size x="21" y="21"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Icon" relativePoint="TOPLEFT" x="-7" y="8"/>
+                    </Anchors>
+                </Texture>
+                <Texture parentKey="LevelBubble" file="Interface\AddOns\Rematch\textures\level-bubble" hidden="true">
+                    <Size x="19 " y="19"/>
+                    <Anchors>
+                        <Anchor point="CENTER" relativeKey="$parent.Icon" relativePoint="BOTTOMRIGHT" x="-3" y="3"/>
+                    </Anchors>
+                    <TexCoords left="0" right="0.6875" top="0" bottom="0.6875"/>
+                </Texture>
+                <FontString parentKey="LevelText" inherits="GameFontNormalTiny" justifyH="CENTER" hidden="true">
+                    <Size x="0" y="12"/>
+                    <Anchors>
+                        <Anchor point="CENTER" relativeKey="$parent.LevelBubble" x="0" y="-0.5"/>
+                    </Anchors>
+                </FontString>
+                <!-- border overlay for top status bar, the hp bar for pets below 25 (not shown for pets at 25) -->
+                <Texture parentKey="TopStatusBarBorder" file="Interface\AddOns\Rematch\textures\borders">
+                    <Size x="44" y="12"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Icon" relativePoint="BOTTOMLEFT" x="-1" y="-8"/>
+                    </Anchors>
+                    <TexCoords left="0.25" right="0.421875" top="0.203125" bottom="0.25"/>
+                    <Color r="0.65" g="0.65" b="0.65"/>
+                </Texture>
+                <!-- border overlay for bottom status bar, either hp bar for 25 pets or xp bar for pets below 25 -->
+                <Texture parentKey="BottomStatusBarBorder" file="Interface\AddOns\Rematch\textures\borders">
+                    <Size x="44" y="12"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Icon" relativePoint="BOTTOMLEFT" x="-1" y="-22"/>
+                    </Anchors>
+                    <TexCoords left="0.25" right="0.421875" top="0.203125" bottom="0.25"/>
+                    <Color r="0.65" g="0.65" b="0.65"/>
+                </Texture>
+                <!-- the little heart icon used instead of a TopStatusBar for pets at max level -->
+                <Texture parentKey="HeartIcon" file="Interface\PetBattles\PetBattle-StatIcons" hidden="true">
+                    <Size x="12" y="12"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Icon" relativePoint="BOTTOMLEFT" x="0" y="-8"/>
+                    </Anchors>
+                    <TexCoords left="0.5" right="1" top="0.5" bottom="1"/>
+                </Texture>
+                <!-- a text description of health (full hp at max hp, or percent health while injured) for pets at max level -->
+                <FontString parentKey="HealthText" inherits="GameFontHighlightSmall" hidden="true">
+                    <Anchors>
+                        <Anchor point="TOP" relativeKey="$parent.Icon" relativePoint="BOTTOM" x="6" y="-9"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+        <Animations>
+            <!-- animation for the glowing of the yellow highlight around a pet icon while a pet is on the cursor -->
+            <AnimationGroup parentKey="Animation" looping="BOUNCE">
+                <Alpha childKey="Glow" fromAlpha="0.25" toAlpha="1" duration="0.9" order="1"/>
+                <Alpha childKey="Glow" fromAlpha="1" toAlpha="0.25" duration="0.9" order="2"/>
+            </AnimationGroup>
+            <!-- animation to flash the injured/dead red texture when shown -->
+            <AnimationGroup parentKey="InjuredFlash" looping="NONE">
+                <Alpha childKey="Status" fromAlpha="1" toAlpha="0.5" duration="0.25" order="1"/>
+                <Alpha childKey="Status" fromAlpha="0.5" toAlpha="1" duration="0.25" order="2"/>
+                <Alpha childKey="Status" fromAlpha="1" toAlpha="0.5" duration="0.25" order="3"/>
+                <Alpha childKey="Status" fromAlpha="0.5" toAlpha="1" duration="0.25" order="4"/>
+                <Alpha childKey="Status" fromAlpha="1" toAlpha="0.5" duration="0.25" order="5"/>
+                <Alpha childKey="Status" fromAlpha="0.5" toAlpha="1" duration="0.25" order="6"/>
+            </AnimationGroup>
+        </Animations>
+        <Frames>
+            <!-- button for special slots (leveling, random, ignored) -->
+            <Button parentKey="SpecialButton" registerForClicks="AnyUp">
+                <Size x="18" y="18"/>
+                <Anchors>
+                    <Anchor point="CENTER" relativeKey="$parent.Icon" relativePoint="TOPRIGHT" x="-4" y="-4"/>
+                </Anchors>
+                <Layers>
+                    <Layer level="ARTWORK">
+                        <Texture parentKey="Icon" file="Interface\AddOns\Rematch\textures\badges-borders" setAllPoints="true"/>
+                    </Layer>
+                </Layers>
+                <Scripts>
+                    <OnEnter>
+                        self:GetParent():GetParent().SpecialOnEnter(self)
+                    </OnEnter>
+                    <OnLeave>
+                        self:GetParent():GetParent().SpecialOnLeave(self)
+                    </OnLeave>
+                    <OnMouseDown>
+                        self:GetParent():GetParent().SpecialOnMouseDown(self)
+                    </OnMouseDown>
+                    <OnMouseUp>
+                        self:GetParent():GetParent().SpecialOnMouseUp(self)
+                    </OnMouseUp>
+                    <OnClick>
+                        self:GetParent():GetParent().SpecialOnClick(self,button)
+                    </OnClick>
+                </Scripts>
+            </Button>
+            <!-- abilitybar is its own frame -->
+            <Frame parentKey="AbilityBar" mixin="RematchFillAbilityBarMixin">
+                <Size x="26" y="76"/>
+                <Layers>
+                    <Layer level="ARTWORK">
+                        <!-- the borders around the 3 buttons is a single texture -->
+                        <Texture parentKey="AbilitiesBorder" file="Interface\AddOns\Rematch\textures\borders" setAllPoints="true"/>
+                    </Layer>
+                </Layers>
+                <Frames>
+                    <Button parentArray="Abilities" inherits="RematchMiniAbilityBarButtonTemplate" id="1">
+                        <Anchors>
+                            <Anchor point="TOP" x="0" y="-2"/>
+                        </Anchors>
+                    </Button>
+                    <Button parentArray="Abilities" inherits="RematchMiniAbilityBarButtonTemplate" id="2">
+                        <Anchors>
+                            <Anchor point="CENTER"/>
+                        </Anchors>
+                    </Button>
+                    <Button parentArray="Abilities" inherits="RematchMiniAbilityBarButtonTemplate" id="3">
+                        <Anchors>
+                            <Anchor point="BOTTOM" x="0" y="2"/>
+                        </Anchors>
+                    </Button>
+                </Frames>
+            </Frame>
+            <!-- flash for when team loads -->
+            <Frame parentKey="Bling" inherits="RematchBlingAreaTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" x="2" y="-2"/>
+                    <Anchor point="BOTTOMRIGHT" x="-2" y="2"/>
+                </Anchors>
+            </Frame>
+            <!-- overlay when a loadout is locked (in pet battle queue or due to multiple accounts logged in) -->
+            <Frame parentKey="LockOverlay" setAllPoints="true">
+				<Layers>
+					<Layer level="ARTWORK">
+						<Texture>
+							<Color r="0" g="0" b="0" a="0.5"/>
+						</Texture>
+					</Layer>
+					<Layer level="OVERLAY">
+						<Texture file="Interface\PetBattles\PetBattle-LockIcon">
+							<Size x="24" y="24"/>
+							<Anchors>
+								<Anchor point="TOPLEFT" x="3" y="-3"/>
+							</Anchors>
+                            <Scripts>
+                                <OnEnter>
+                                    self:GetParent():GetParent():GetParent().LockOnEnter(self)
+                                </OnEnter>
+                                <OnLeave>
+                                    self:GetParent():GetParent():GetParent().LockOnLeave(self)
+                                </OnLeave>
+                            </Scripts>
+						</Texture>
+					</Layer>
+				</Layers>
+                <Scripts>
+                    <OnShow>
+                        self:SetFrameLevel(self:GetParent():GetFrameLevel()+12)
+                    </OnShow>
+                </Scripts>
+            </Frame>
+        </Frames>
+        <Scripts>
+            <OnEnter>
+                self:GetParent().LoadoutOnEnter(self)
+            </OnEnter>
+            <OnLeave>
+                self:GetParent().LoadoutOnLeave(self)
+            </OnLeave>
+            <OnMouseDown>
+                self:GetParent().LoadoutOnMouseDown(self)
+            </OnMouseDown>
+            <OnMouseUp>
+                self:GetParent().LoadoutOnMouseUp(self)
+            </OnMouseUp>
+            <OnClick>
+                self:GetParent().LoadoutOnClick(self,button)
+            </OnClick>
+            <OnDoubleClick>
+                self:GetParent().LoadoutOnDoubleClick(self,button)
+            </OnDoubleClick>
+            <OnDragStart>
+                self:GetParent().LoadoutOnDragStart(self)
+            </OnDragStart>
+            <OnReceiveDrag>
+                self:GetParent().LoadoutOnReceiveDrag(self)
+            </OnReceiveDrag>
+        </Scripts>
+    </Button>
+
+    <Frame parentKey="MiniLoadoutPanel" parent="RematchFrame" hidden="true">
+        <Frames>
+            <!-- the three loaded pets, each in their own inset frame -->
+            <Button parentArray="Loadouts" inherits="RematchMiniLoadoutTemplate" id="1"/>
+            <Button parentArray="Loadouts" inherits="RematchMiniLoadoutTemplate" id="2"/>
+            <Button parentArray="Loadouts" inherits="RematchMiniLoadoutTemplate" id="3"/>
+            <!-- the little arrow that appears to the left of an ability when the mouse is over it -->
+            <Frame parentKey="FlyoutArrow">
+                <Size x="16" y="16"/>
+                <KeyValues>
+                    <KeyValue key="direction" value="LEFT"/>
+                </KeyValues>
+                <Layers>
+                    <Layer level="OVERLAY">
+                        <Texture file="Interface\Buttons\Arrow-Up-Up" setAllPoints="true">
+                            <TexCoords> <!-- rotate left 90 degrees -->
+                                <Rect ULx="1" ULy="0" LLx="0" LLy="0" URx="1" URy="1" LRx="0" LRy="1"/>
+                            </TexCoords>
+                        </Texture>
+                    </Layer>
+                </Layers>
+            </Frame>
+            <!-- the flyout that appears when an ability is clicked, with the two ability options for the given ability slot -->
+            <Frame parentKey="AbilityFlyout" mixin="RematchFillAbilityFlyoutMixin" hidden="true">
+                <Size x="51" y="26"/>
+                <Frames>
+                    <Button parentArray="Abilities" inherits="RematchMiniAbilityBarButtonTemplate">
+                        <Anchors>
+                            <Anchor point="RIGHT" x="-2" y="0"/>
+                        </Anchors>
+                        <KeyValues>
+                            <KeyValue key="isFlyoutAbility" value="true" type="boolean"/>
+                        </KeyValues>
+                    </Button>
+                    <Button parentArray="Abilities" inherits="RematchMiniAbilityBarButtonTemplate">
+                        <Anchors>
+                            <Anchor point="LEFT" x="2" y="0"/>
+                        </Anchors>
+                        <KeyValues>
+                            <KeyValue key="isFlyoutAbility" value="true" type="boolean"/>
+                        </KeyValues>
+                    </Button>
+                </Frames>
+                <Layers>
+                    <Layer level="ARTWORK">
+                        <!-- border overlay is for both ability icons -->
+                        <Texture parentKey="Border" file="Interface\AddOns\Rematch\textures\borders" setAllPoints="true"/>
+                    </Layer>
+                    <Layer level="BORDER" textureSubLevel="1">
+                        <!-- the yellow highlight when an ability is the loaded one -->
+                        <Texture parentArray="AbilitySelecteds" file="Interface\Buttons\CheckButtonHilight" alphaMode="ADD" hidden="true">
+                            <Size x="21" y="21"/>
+                            <Anchors>
+                                <Anchor point="RIGHT" x="-3" y="0"/>
+                            </Anchors>
+                        </Texture>
+                        <Texture parentArray="AbilitySelecteds" file="Interface\Buttons\CheckButtonHilight" alphaMode="ADD" hidden="true">
+                            <Size x="21" y="21"/>
+                            <Anchors>
+                                <Anchor point="LEFT" x="2" y="0"/>
+                            </Anchors>
+                        </Texture>
+                    </Layer>
+                </Layers>
+                <Scripts>
+                    <OnShow>
+                        self:SetFrameLevel(self:GetParent():GetFrameLevel()+8)
+                    </OnShow>
+                    <OnUpdate>
+                        self:OnUpdate(elapsed)
+                    </OnUpdate>
+                </Scripts>
+            </Frame>
+
+        </Frames>
+        <Scripts>
+            <OnShow>
+                self:OnShow()
+            </OnShow>
+            <OnHide>
+                self:OnHide()
+            </OnHide>
+        </Scripts>
+    </Frame>
+
+    <Script file="miniLoadoutPanel.lua"/>
+</Ui>
