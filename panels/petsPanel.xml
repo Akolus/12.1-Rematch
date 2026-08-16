@@ -1,0 +1,384 @@
+<Ui>
+
+    <Script file="petsPanelMixins.lua"/>
+
+    <!-- template for the square overlays over the 10 pet type "buttons" -->
+    <Texture name="RematchTypeBarOverlayTemplate" desaturated="true" file="Interface\Buttons\CheckButtonHilight" alphaMode="ADD" alpha="0.75" hidden="true" virtual="true">
+        <Size x="25" y="25"/>
+        <Color r="1.0" g="1.0" b="0.82"/>
+    </Texture>
+
+    <!-- template for the 3 typebar tabs (Pet Type, Strong Vs, Tough Vs). the bordering tab texture is a part of TypeBar.TabbedBorder -->
+    <Button name="RematchTypeBarTabTemplate" mixin="RematchTypeBarTabMixin" virtual="true">
+        <Size x="70" y="24"/>
+        <Layers>
+            <Layer level="BORDER">
+                <!-- colored (yellow, green, red) "selected" texture to accent a selected tab -->
+                <Texture parentKey="Selected" file="Interface\AddOns\Rematch\textures\typebar" setAllPoints="true">
+                    <TexCoords left="0" right="0.13671875" top="0.765625" bottom="0.859375"/>
+                </Texture>
+            </Layer>
+            <Layer level="ARTWORK">
+                <!-- filled texture when a tab contains selected types -->
+				<Texture parentKey="HasStuff" file="Interface\PaperDollInfoFrame\UI-Character-Tab-Highlight" alphaMode="ADD" alpha=".5" hidden="true">
+					<Anchors>
+						<Anchor point="TOPLEFT" x="-2" y="-7"/>
+						<Anchor point="BOTTOMRIGHT" x="2" y="2"/>
+					</Anchors>
+					<TexCoords left="0" right="1" top="0.40625" bottom="0.75"/>
+					<Color r="1" g="1" b=".75"/>
+				</Texture>
+                <!-- text on the tab (Pet Type, Strong Vs, Tough Vs) -->
+                <FontString parentKey="Text" inherits="GameFontHighlightSmall">
+                    <Anchors>
+                        <Anchor point="CENTER" x="0" y="-2"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+            <Layer level="OVERLAY">
+                <!-- border highlight for unselected tabs -->
+                <Texture parentKey="Highlight" file="Interface\AddOns\Rematch\textures\typebar" alphaMode="ADD" alpha="0.33" hidden="true">
+                    <Size x="72" y="21"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="-1" y="0"/>
+                    </Anchors>
+                    <TexCoords left="0.19140625" right="0.33203125" top="0" bottom="0.08203125"/>
+                </Texture>
+            </Layer>
+        </Layers>
+        <Scripts>
+            <OnEnter method="OnEnter"/>
+            <OnLeave method="OnLeave"/>
+            <OnMouseDown method="OnMouseDown"/>
+            <OnMouseUp method="OnMouseUp"/>
+            <OnShow method="OnMouseUp"/>
+            <OnClick method="OnClick"/>
+        </Scripts>
+    </Button>
+
+
+    <Frame parentKey="PetsPanel" parent="RematchFrame">
+        <Frames>
+
+            <!-- Top contains the searchbar, typebar and filter button -->
+            <Frame parentKey="Top" inherits="RematchPanelInsetFrameTemplate">
+                <Size x="0" y="29"/>
+                <Anchors>
+                    <Anchor point="TOPLEFT"/>
+                    <Anchor point="TOPRIGHT"/>
+                </Anchors>
+                <Frames>
+                    <Button parentKey="ToggleButton" inherits="RematchSmallGreyButtonTemplate">
+                        <Anchors>
+                            <Anchor point="TOPLEFT" x="3" y="-3"/>
+                        </Anchors>
+                        <Scripts>
+                            <OnClick>
+                                self:OnClick()
+                            </OnClick>
+                        </Scripts>
+                    </Button>
+                    <Button parentKey="FilterButton" inherits="RematchFilterButtonTemplate">
+                        <Anchors>
+                            <Anchor point="TOPRIGHT" x="-3" y="-3"/>
+                        </Anchors>
+                        <Scripts>
+                            <OnClick>
+                                self:OnClick(button)
+                            </OnClick>
+                        </Scripts>
+                    </Button>
+                    <EditBox parentKey="SearchBox" inherits="RematchSearchBoxTemplate">
+                        <Anchors>
+                            <Anchor point="TOPLEFT" relativeKey="$parent.ToggleButton" relativePoint="TOPRIGHT" x="-1" y="0"/>
+                            <Anchor point="TOPRIGHT" relativeKey="$parent.FilterButton" relativePoint="TOPLEFT" x="1" y="0"/>
+                        </Anchors>
+                        <Scripts>
+                            <OnTextChanged>
+                                self:OnTextChanged(userInput)
+                            </OnTextChanged>
+                        </Scripts>
+                    </EditBox>
+                    <!-- typebar is a tabbed box for quickly choosing family, strong vs, tough vs -->
+                    <Frame parentKey="TypeBar">
+                        <Size x="267" y="54"/>
+                        <Anchors>
+                            <Anchor point="BOTTOM" x="0" y="5"/>
+                        </Anchors>
+                        <Layers>
+                            <Layer level="BORDER">
+                                <!-- TabbedBorder includes the outline of the tabs as well as border overlays for the 10 pet types -->
+                                <Texture parentKey="TabbedBorder" file="Interface\AddOns\Rematch\textures\typebar">
+                                    <Size x="267" y="54"/>
+                                    <Anchors>
+                                        <Anchor point="TOPLEFT"/>
+                                    </Anchors>
+                                    <TexCoords left="0" right="0.521484375" top="0" bottom="0.2109375"/>
+                                    <Color r="0.5" g="0.5" b="0.5"/>
+                                </Texture>
+                            </Layer>
+                            <Layer level="ARTWORK">
+                                <!-- the 10 type "buttons" unfortunately textures can't inherit script handlers yet so they need to be declared on each -->
+                                <Texture parentArray="Buttons" file="Interface\Icons\Pet_Type_Humanoid" mixin="RematchTextureMouseMixin">
+                                    <Size x="23" y="23"/>
+                                    <Anchors>
+                                        <Anchor point="TOPLEFT" x="5" y="-26"/>
+                                    </Anchors>
+                                    <Scripts>
+                                        <OnEnter method="OnEnter"/>
+                                        <OnLeave method="OnLeave"/>
+                                        <OnMouseDown method="OnMouseDown"/>
+                                        <OnMouseUp method="OnMouseUp"/>
+                                    </Scripts>
+                                </Texture>
+                                <Texture parentArray="Buttons" file="Interface\Icons\Pet_Type_Dragon" mixin="RematchTextureMouseMixin">
+                                    <Size x="23" y="23"/>
+                                    <Anchors>
+                                        <Anchor point="TOPLEFT" x="31" y="-26"/>
+                                    </Anchors>
+                                    <Scripts>
+                                        <OnEnter method="OnEnter"/>
+                                        <OnLeave method="OnLeave"/>
+                                        <OnMouseDown method="OnMouseDown"/>
+                                        <OnMouseUp method="OnMouseUp"/>
+                                    </Scripts>
+                                </Texture>
+                                <Texture parentArray="Buttons" file="Interface\Icons\Pet_Type_Flying" mixin="RematchTextureMouseMixin">
+                                    <Size x="23" y="23"/>
+                                    <Anchors>
+                                        <Anchor point="TOPLEFT" x="57" y="-26"/>
+                                    </Anchors>
+                                    <Scripts>
+                                        <OnEnter method="OnEnter"/>
+                                        <OnLeave method="OnLeave"/>
+                                        <OnMouseDown method="OnMouseDown"/>
+                                        <OnMouseUp method="OnMouseUp"/>
+                                    </Scripts>
+                                </Texture>
+                                <Texture parentArray="Buttons" file="Interface\Icons\Pet_Type_Undead" mixin="RematchTextureMouseMixin">
+                                    <Size x="23" y="23"/>
+                                    <Anchors>
+                                        <Anchor point="TOPLEFT" x="83" y="-26"/>
+                                    </Anchors>
+                                    <Scripts>
+                                        <OnEnter method="OnEnter"/>
+                                        <OnLeave method="OnLeave"/>
+                                        <OnMouseDown method="OnMouseDown"/>
+                                        <OnMouseUp method="OnMouseUp"/>
+                                    </Scripts>
+                                </Texture>
+                                <Texture parentArray="Buttons" file="Interface\Icons\Pet_Type_Critter" mixin="RematchTextureMouseMixin">
+                                    <Size x="23" y="23"/>
+                                    <Anchors>
+                                        <Anchor point="TOPLEFT" x="109" y="-26"/>
+                                    </Anchors>
+                                    <Scripts>
+                                        <OnEnter method="OnEnter"/>
+                                        <OnLeave method="OnLeave"/>
+                                        <OnMouseDown method="OnMouseDown"/>
+                                        <OnMouseUp method="OnMouseUp"/>
+                                    </Scripts>
+                                </Texture>
+                                <Texture parentArray="Buttons" file="Interface\Icons\Pet_Type_Magical" mixin="RematchTextureMouseMixin">
+                                    <Size x="23" y="23"/>
+                                    <Anchors>
+                                        <Anchor point="TOPLEFT" x="135" y="-26"/>
+                                    </Anchors>
+                                    <Scripts>
+                                        <OnEnter method="OnEnter"/>
+                                        <OnLeave method="OnLeave"/>
+                                        <OnMouseDown method="OnMouseDown"/>
+                                        <OnMouseUp method="OnMouseUp"/>
+                                    </Scripts>
+                                </Texture>
+                                <Texture parentArray="Buttons" file="Interface\Icons\Pet_Type_Elemental" mixin="RematchTextureMouseMixin">
+                                    <Size x="23" y="23"/>
+                                    <Anchors>
+                                        <Anchor point="TOPLEFT" x="161" y="-26"/>
+                                    </Anchors>
+                                    <Scripts>
+                                        <OnEnter method="OnEnter"/>
+                                        <OnLeave method="OnLeave"/>
+                                        <OnMouseDown method="OnMouseDown"/>
+                                        <OnMouseUp method="OnMouseUp"/>
+                                    </Scripts>
+                                </Texture>
+                                <Texture parentArray="Buttons" file="Interface\Icons\Pet_Type_Beast" mixin="RematchTextureMouseMixin">
+                                    <Size x="23" y="23"/>
+                                    <Anchors>
+                                        <Anchor point="TOPLEFT" x="187" y="-26"/>
+                                    </Anchors>
+                                    <Scripts>
+                                        <OnEnter method="OnEnter"/>
+                                        <OnLeave method="OnLeave"/>
+                                        <OnMouseDown method="OnMouseDown"/>
+                                        <OnMouseUp method="OnMouseUp"/>
+                                    </Scripts>
+                                </Texture>
+                                <Texture parentArray="Buttons" file="Interface\Icons\Pet_Type_Water" mixin="RematchTextureMouseMixin">
+                                    <Size x="23" y="23"/>
+                                    <Anchors>
+                                        <Anchor point="TOPLEFT" x="213" y="-26"/>
+                                    </Anchors>
+                                    <Scripts>
+                                        <OnEnter method="OnEnter"/>
+                                        <OnLeave method="OnLeave"/>
+                                        <OnMouseDown method="OnMouseDown"/>
+                                        <OnMouseUp method="OnMouseUp"/>
+                                    </Scripts>
+                                </Texture>
+                                <Texture parentArray="Buttons" file="Interface\Icons\Pet_Type_Mechanical" mixin="RematchTextureMouseMixin">
+                                    <Size x="23" y="23"/>
+                                    <Anchors>
+                                        <Anchor point="TOPLEFT" x="239" y="-26"/>
+                                    </Anchors>
+                                    <Scripts>
+                                        <OnEnter method="OnEnter"/>
+                                        <OnLeave method="OnLeave"/>
+                                        <OnMouseDown method="OnMouseDown"/>
+                                        <OnMouseUp method="OnMouseUp"/>
+                                    </Scripts>
+                                </Texture>
+                                <!-- level 25 button is for quickly filtering level 25 rares -->
+                                <Texture parentKey="Level25Button" file="Interface\AddOns\Rematch\textures\levels" mixin="RematchTextureMouseMixin">
+                                    <Size x="19" y="19"/>
+                                    <Anchors>
+                                        <Anchor point="TOPLEFT" x="4" y="-1"/>
+                                    </Anchors>
+                                    <TexCoords left="0" right="0.125" top="0.75" bottom="1"/>
+                                    <Scripts>
+                                        <OnEnter method="OnEnter"/>
+                                        <OnLeave method="OnLeave"/>
+                                        <OnMouseDown method="OnMouseDown"/>
+                                        <OnMouseUp method="OnMouseUp"/>
+                                    </Scripts>
+                                </Texture>
+                            </Layer>
+                            <!-- the 10 yellow/green/red borders around a pet type button to show it's selected -->
+                            <Layer level="OVERLAY">
+                                <Texture parentArray="Selecteds" inherits="RematchTypeBarOverlayTemplate">
+                                    <Anchors><Anchor point="TOPLEFT" x="4" y="-25"/></Anchors>
+                                </Texture>
+                                <Texture parentArray="Selecteds" inherits="RematchTypeBarOverlayTemplate">
+                                    <Anchors><Anchor point="TOPLEFT" x="30" y="-25"/></Anchors>
+                                </Texture>
+                                <Texture parentArray="Selecteds" inherits="RematchTypeBarOverlayTemplate">
+                                    <Anchors><Anchor point="TOPLEFT" x="56" y="-25"/></Anchors>
+                                </Texture>
+                                <Texture parentArray="Selecteds" inherits="RematchTypeBarOverlayTemplate">
+                                    <Anchors><Anchor point="TOPLEFT" x="82" y="-25"/></Anchors>
+                                </Texture>
+                                <Texture parentArray="Selecteds" inherits="RematchTypeBarOverlayTemplate">
+                                    <Anchors><Anchor point="TOPLEFT" x="108" y="-25"/></Anchors>
+                                </Texture>
+                                <Texture parentArray="Selecteds" inherits="RematchTypeBarOverlayTemplate">
+                                    <Anchors><Anchor point="TOPLEFT" x="134" y="-25"/></Anchors>
+                                </Texture>
+                                <Texture parentArray="Selecteds" inherits="RematchTypeBarOverlayTemplate">
+                                    <Anchors><Anchor point="TOPLEFT" x="160" y="-25"/></Anchors>
+                                </Texture>
+                                <Texture parentArray="Selecteds" inherits="RematchTypeBarOverlayTemplate">
+                                    <Anchors><Anchor point="TOPLEFT" x="186" y="-25"/></Anchors>
+                                </Texture>
+                                <Texture parentArray="Selecteds" inherits="RematchTypeBarOverlayTemplate">
+                                    <Anchors><Anchor point="TOPLEFT" x="212" y="-25"/></Anchors>
+                                </Texture>
+                                <Texture parentArray="Selecteds" inherits="RematchTypeBarOverlayTemplate">
+                                    <Anchors><Anchor point="TOPLEFT" x="238" y="-25"/></Anchors>
+                                </Texture>
+                                <!-- highlight of the level 25 button -->
+                                <Texture parentKey="Level25Highlight" file="Interface\Common\GoldRing" alphaMode="ADD" hidden="true">
+                                    <Size x="19" y="19"/>
+                                    <Anchors>
+                                        <Anchor point="TOPLEFT" x="4" y="-1"/>
+                                    </Anchors>
+                                    <TexCoords left="0.046875" right="0.953125" top="0.046875" bottom="0.953125"/>
+                                </Texture>
+                            </Layer>
+                        </Layers>
+                        <Frames>
+                            <Button parentArray="Tabs" inherits="RematchTypeBarTabTemplate" id="1">
+                                <Anchors>
+                                    <Anchor point="TOPLEFT" x="26" y="0"/>
+                                </Anchors>
+                            </Button>
+                            <Button parentArray="Tabs" inherits="RematchTypeBarTabTemplate" id="2">
+                                <Anchors>
+                                    <Anchor point="TOPLEFT" x="99" y="0"/>
+                                </Anchors>
+                            </Button>
+                            <Button parentArray="Tabs" inherits="RematchTypeBarTabTemplate" id="3">
+                                <Anchors>
+                                    <Anchor point="TOPLEFT" x="172" y="0"/>
+                                </Anchors>
+                            </Button>
+                            <!-- clear button to right of tabs -->
+                            <Button parentKey="Clear" inherits="RematchClearButtonTemplate">
+                                <Anchors>
+                                    <Anchor point="TOPRIGHT" x="-4" y="-2"/>
+                                </Anchors>
+                                <Scripts>
+                                    <OnClick>
+                                        self:OnClick(button)
+                                    </OnClick>
+                                </Scripts>
+                            </Button>
+                        </Frames>
+                    </Frame>
+                </Frames>
+            </Frame>
+            <!-- ResultsBar only shows when the list is filtered, to show how many pets listed -->
+            <Frame parentKey="ResultsBar" inherits="RematchPanelInsetFrameTemplate" hidden="true">
+                <Size x="0" y="26"/>
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.Top" relativePoint="BOTTOMLEFT" x="0" y="-2"/>
+                    <Anchor point="TOPRIGHT" relativeKey="$parent.Top" relativePoint="BOTTOMRIGHT" x="0" y="-2"/>
+                </Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<FontString parentKey="NumPets" inherits="GameFontNormal">
+							<Anchors>
+								<Anchor point="LEFT" x="8" y="0"/>
+							</Anchors>
+						</FontString>
+						<FontString parentKey="Filters" inherits="GameFontNormal" wordwrap="false" justifyH="RIGHT">
+							<Anchors>
+								<Anchor point="LEFT" relativeKey="$parent.NumPets" relativePoint="RIGHT" x="1" y="0"/>
+								<Anchor point="RIGHT" x="-25" y="0"/>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Frames>
+					<Button parentKey="Clear" inherits="RematchClearButtonTemplate">
+						<Anchors>
+							<Anchor point="RIGHT" x="-5" y="0"/>
+						</Anchors>
+                        <Scripts>
+                            <OnClick>
+                                self:OnClick(button)
+                            </OnClick>
+                        </Scripts>
+					</Button>
+				</Frames>
+            </Frame>
+            <!-- List is the main list of pets -->
+            <Frame parentKey="List" inherits="RematchAutoScrollBoxTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.Top" relativePoint="BOTTOMLEFT" x="0" y="-2"/>
+                    <Anchor point="BOTTOMRIGHT"/>
+                </Anchors>
+            </Frame>
+        </Frames>
+        <Scripts>
+            <OnShow>
+                self:OnShow()
+            </OnShow>
+            <OnHide>
+                self:OnHide()
+            </OnHide>
+        </Scripts>
+    </Frame>
+
+    <Script file="petsPanel.lua"/>
+</Ui>

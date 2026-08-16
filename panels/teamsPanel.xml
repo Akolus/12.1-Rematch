@@ -1,0 +1,55 @@
+<Ui>
+
+    <Frame parentKey="TeamsPanel" parent="RematchFrame">
+        <Frames>
+            <!-- Top contains the All button, search box and Teams button -->
+            <Frame parentKey="Top" inherits="RematchPanelInsetFrameTemplate">
+                <Size x="0" y="29"/>
+                <Anchors>
+                    <Anchor point="TOPLEFT"/>
+                    <Anchor point="TOPRIGHT"/>
+                </Anchors>
+                <Frames>
+                    <Button parentKey="AllButton" inherits="RematchAllButtonTemplate">
+                        <Anchors>
+                            <Anchor point="TOPLEFT" x="3" y="-3"/>
+                        </Anchors>
+                    </Button>
+                    <Button parentKey="TeamsButton" inherits="RematchFilterButtonTemplate">
+                        <Anchors>
+                            <Anchor point="TOPRIGHT" x="-3" y="-3"/>
+                        </Anchors>
+                        <Scripts>
+                            <OnClick>
+                                self:OnClick(button)
+                            </OnClick>
+                        </Scripts>
+                    </Button>
+                    <EditBox parentKey="SearchBox" inherits="RematchSearchBoxTemplate">
+                        <Anchors>
+                            <Anchor point="TOPLEFT" relativeKey="$parent.AllButton" relativePoint="TOPRIGHT" x="-1" y="0"/>
+                            <Anchor point="TOPRIGHT" relativeKey="$parent.TeamsButton" relativePoint="TOPLEFT" x="1" y="0"/>
+                        </Anchors>
+                    </EditBox>
+                </Frames>
+            </Frame>
+            <!-- List is the main list of teams (with group headers) -->
+            <Frame parentKey="List" inherits="RematchAutoScrollBoxTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.Top" relativePoint="BOTTOMLEFT" x="0" y="-2"/>
+                    <Anchor point="BOTTOMRIGHT"/>
+                </Anchors>
+            </Frame>
+        </Frames>
+        <Scripts>
+            <OnShow>
+                self:OnShow()
+            </OnShow>
+            <OnHide>
+                self:OnHide()
+            </OnHide>
+        </Scripts>
+    </Frame>
+
+    <Script file="teamsPanel.lua"/>
+</Ui>

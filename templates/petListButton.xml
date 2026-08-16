@@ -1,0 +1,260 @@
+<Ui>
+    <Script file="petListButton.lua"/>
+
+    <Button name="RematchNormalPetListButtonTemplate" mixin="RematchCommonPetListButtonMixin,RematchNormalPetListButtonMixin,RematchFillPetMixin" registerForDrag="LeftButton" registerForClicks="AnyUp" virtual="true">
+        <Size x="200" y="44"/>
+        <Layers>
+            <!-- lowest layer contains the background texture over most of the button (aside from pet icon) -->
+            <Layer level="BACKGROUND" textureSubLevel="-1">
+                <Texture parentKey="Back" file="Interface\AddOns\Rematch\textures\listbuttondark">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="45" y="0"/>
+                        <Anchor point="BOTTOMRIGHT"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+            <Layer level="BACKGROUND">
+                <!-- main icon of the pet -->
+                <Texture parentKey="Icon" mixin="RematchPetPickupIconMixin">
+                    <Size x="40" y="40"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="2" y="-2"/>
+                    </Anchors>
+                    <KeyValues>
+                        <KeyValue key="draggable" value="true" type="boolean"/>
+                    </KeyValues>
+                    <TexCoords left="0.075" right="0.925" top="0.075" bottom="0.925"/>
+                    <Scripts>
+                        <OnEnter method="OnEnter"/>
+                        <OnLeave method="OnLeave"/>
+                        <OnMouseDown method="OnMouseDown"/>
+                        <OnMouseUp method="OnMouseUp"/>
+                    </Scripts>
+                </Texture>
+            </Layer>
+            <!-- border layer contains the pet type decal on the right of the listbutton and various text -->
+            <Layer level="BORDER">
+                <Texture parentKey="TypeDecal" file="Interface\AddOns\Rematch\textures\pettypedecals" alpha="0.4">
+					<Size x="58" y="41"/> <!-- was 55x38 -->
+					<Anchors>
+						<Anchor point="RIGHT" x="-1" y="0"/>
+					</Anchors>
+                    <TexCoords left="0.75" right="1" top="0.25" bottom="0.421875"/>
+				</Texture>
+                <!-- a red X for dead or red haze for injured -->
+				<Texture parentKey="Status" file="Interface\AddOns\Rematch\textures\petstatus" hidden="true">
+                    <Size x="44" y="44"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+            <!-- Icon here is the icon of the pet on the left -->
+            <Layer level="ARTWORK">
+                <!-- grey (or rarity-colored) border around the pet -->
+                <Texture parentKey="Border" file="Interface\AddOns\Rematch\textures\borders">
+                    <Size x="44" y="44"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT"/>
+                    </Anchors>
+                    <TexCoords left="0" right="0.171875" top="0" bottom="0.171875"/>
+                </Texture>
+                <FontString parentKey="PetName" inherits="GameFontNormal" justifyH="LEFT">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="50" y="-2"/>
+                        <Anchor point="TOPRIGHT" x="-4" y="-2"/>
+                    </Anchors>
+                </FontString>
+                <FontString parentKey="SpeciesName" inherits="GameFontHighlightSmall" justifyH="LEFT">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.PetName" relativePoint="BOTTOMLEFT" x="0" y="-1"/>
+                        <Anchor point="TOPRIGHT" relativeKey="$parent.PetName" relativePoint="BOTTOMRIGHT" x="0" y="-1"/>
+                    </Anchors>
+                    <Color r="0.9" g="0.9" b="0.9"/>
+                </FontString>
+                <FontString parentKey="Breed" inherits="GameFontHighlightSmall">
+                    <Anchors>
+                        <Anchor point="CENTER" relativePoint="BOTTOMRIGHT" x="-14" y="11"/>
+                    </Anchors>
+                    <Color r="0.8" g="0.8" b="0.8"/>
+                </FontString>
+            </Layer>
+            <Layer level="OVERLAY">
+                <!-- favorite star in topleft corner-->
+                <Texture parentKey="Favorite" atlas="PetJournal-FavoritesIcon" hidden="true">
+                    <Size x="21" y="21"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Icon" x="-7" y="6"/>
+                    </Anchors>
+                </Texture>
+                <Texture parentKey="LevelBubble" file="Interface\AddOns\Rematch\textures\level-bubble" hidden="true">
+                    <Size x="19 " y="19"/>
+                    <Anchors>
+                        <Anchor point="CENTER" relativeKey="$parent.Icon" relativePoint="BOTTOMRIGHT" x="-3" y="7"/>
+                    </Anchors>
+                    <TexCoords left="0" right="0.6875" top="0" bottom="0.6875"/>
+                </Texture>
+                <FontString parentKey="LevelText" inherits="GameFontNormalSmall" justifyH="CENTER" hidden="true">
+                    <Size x="0" y="12"/>
+                    <Anchors>
+                        <Anchor point="CENTER" relativeKey="$parent.LevelBubble" x="0" y="-0.5"/>
+                    </Anchors>
+                </FontString>
+                <!-- notes button acts as a real button -->
+                <Texture parentKey="NotesButton" inherits="RematchNotesButtonTemplate" hidden="true">
+                    <Anchors>
+                        <Anchor point="TOPRIGHT" x="-3" y="-5"/>
+                    </Anchors>
+                    <Scripts>
+                        <OnEnter method="OnEnter"/>
+                        <OnLeave method="OnLeave"/>
+                        <OnMouseDown method="OnMouseDown"/>
+                        <OnMouseUp method="OnMouseUp"/>
+                    </Scripts>
+                </Texture>
+                <!-- this is the first of potentially a few badges -->
+                <Texture parentArray="Badges">
+                    <Size x="14" y="14"/>
+                    <Anchors>
+                        <Anchor point="RIGHT" relativeKey="$parent.NotesButton" relativePoint="LEFT" x="-1" y="0"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+        </Layers>
+        <Scripts>
+            <OnEnter method="OnEnter"/>
+            <OnLeave method="OnLeave"/>
+            <OnMouseDown method="OnMouseDown"/>
+            <OnMouseUp method="OnMouseUp"/>
+            <OnClick method="OnClick"/>
+            <OnDoubleClick method="OnDoubleClick"/>
+            <OnDragStart method="OnDragStart"/>
+        </Scripts>
+    </Button>
+
+    <Button name="RematchCompactPetListButtonTemplate" mixin="RematchCommonPetListButtonMixin,RematchCompactPetListButtonMixin,RematchFillPetMixin" registerForDrag="LeftButton" registerForClicks="AnyUp" virtual="true">
+        <Size x="200" y="26"/>
+        <Layers>
+            <Layer level="BACKGROUND" textureSubLevel="-1">
+                <Texture parentKey="Back" file="Interface\AddOns\Rematch\textures\listbuttondark">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="26" y="0"/>
+                        <Anchor point="BOTTOMRIGHT"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+            <Layer level="BACKGROUND">
+                <!-- main icon of the pet -->
+                <Texture parentKey="Icon" mixin="RematchPetPickupIconMixin">
+                    <Size x="22" y="22"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="2" y="-2"/>
+                    </Anchors>
+                    <KeyValues>
+                        <KeyValue key="draggable" value="true" type="boolean"/>
+                    </KeyValues>
+                    <TexCoords left="0.075" right="0.925" top="0.075" bottom="0.925"/>
+                    <Scripts>
+                        <OnEnter method="OnEnter"/>
+                        <OnLeave method="OnLeave"/>
+                        <OnMouseDown method="OnMouseDown"/>
+                        <OnMouseUp method="OnMouseUp"/>
+                    </Scripts>
+                </Texture>
+            </Layer>
+            <Layer level="BORDER">
+                <Texture parentKey="TypeDecal" file="Interface\AddOns\Rematch\textures\pettypedecals" alpha="0.4">
+					<Size x="36" y="25"/> <!-- was 55x38 -->
+					<Anchors>
+						<Anchor point="RIGHT" x="-1" y="0"/>
+					</Anchors>
+                    <TexCoords left="0.75" right="1" top="0.25" bottom="0.421875"/>
+				</Texture>
+                <!-- a red X for dead or red haze for injured -->
+                <Texture parentKey="Status" file="Interface\AddOns\Rematch\textures\petstatus" hidden="true">
+                    <Size x="26" y="26"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+            <Layer level="ARTWORK">
+                <!-- grey (or rarity-colored) border around the pet -->
+                <Texture parentKey="Border" file="Interface\AddOns\Rematch\textures\borders">
+                    <Size x="26" y="26"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT"/>
+                    </Anchors>
+                    <TexCoords left="0" right="0.1015625" top="0.6875" bottom="0.7890625"/>
+                </Texture>
+                <FontString parentKey="Breed" inherits="GameFontHighlightSmall">
+                    <Anchors>
+                        <Anchor point="CENTER" relativeKey="$parent.TypeDecal" relativePoint="CENTER" x="4" y="-1"/>
+                    </Anchors>
+                    <Color r="0.7" g="0.7" b="0.7"/>
+                </FontString>
+                <FontString parentKey="PetName" inherits="GameFontNormal" justifyH="LEFT" wordwrap="false">
+                    <Size x="0" y="23"/>
+                    <Anchors>
+                        <Anchor point="LEFT" x="34" y="0"/>
+                        <Anchor point="RIGHT" x="-2" y="0"/>
+                    </Anchors>
+                </FontString>
+                <!-- this is the first of potentially a few badges -->
+                <Texture parentArray="Badges">
+                    <Size x="14" y="14"/>
+                </Texture>
+            </Layer>
+            <Layer level="OVERLAY">
+                <Texture parentKey="Favorite" atlas="PetJournal-FavoritesIcon" hidden="true">
+                    <Size x="16" y="16"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Icon" x="-6" y="6"/>
+                    </Anchors>
+                </Texture>
+                <Texture parentKey="LevelBubble" file="Interface\AddOns\Rematch\textures\level-bubble" hidden="true">
+                    <Size x="17 " y="17"/>
+                    <Anchors>
+                        <Anchor point="CENTER" relativeKey="$parent.Icon" relativePoint="BOTTOMRIGHT" x="0" y="6"/>
+                    </Anchors>
+                    <TexCoords left="0" right="0.6875" top="0" bottom="0.6875"/>
+                </Texture>
+                <FontString parentKey="LevelText" inherits="GameFontNormalTiny" justifyH="CENTER" hidden="true">
+                    <Size x="0" y="12"/>
+                    <Anchors>
+                        <Anchor point="CENTER" relativeKey="$parent.LevelBubble" x="0" y="-0.5"/>
+                    </Anchors>
+                </FontString>
+                <!-- <Texture parentKey="Level" file="Interface\AddOns\Rematch\textures\levels" hidden="true">
+                    <Size x="17" y="17"/>
+                    <Anchors>
+                        <Anchor point="CENTER" relativeKey="$parent.Icon" relativePoint="BOTTOMRIGHT" x="0" y="6"/>
+                    </Anchors>
+                </Texture> -->
+                <!-- notes button acts as a real button -->
+                <Texture parentKey="NotesButton" inherits="RematchNotesButtonTemplate" hidden="true">
+                    <Anchors>
+                        <Anchor point="RIGHT" x="-37" y="0"/>
+                    </Anchors>
+                    <Scripts>
+                        <OnEnter method="OnEnter"/>
+                        <OnLeave method="OnLeave"/>
+                        <OnMouseDown method="OnMouseDown"/>
+                        <OnMouseUp method="OnMouseUp"/>
+                    </Scripts>
+                </Texture>
+            </Layer>
+        </Layers>
+        <Scripts>
+            <OnEnter method="OnEnter"/>
+            <OnLeave method="OnLeave"/>
+            <OnMouseDown method="OnMouseDown"/>
+            <OnMouseUp method="OnMouseUp"/>
+            <OnClick method="OnClick"/>
+            <OnDoubleClick method="OnDoubleClick"/>
+            <OnDragStart method="OnDragStart"/>
+        </Scripts>
+
+    </Button>
+
+</Ui>
