@@ -524,6 +524,7 @@ function pfm:LoadSavedFavoriteFilter()
 		rematch.petsPanel:Update()
 		local rawSearch = (not rematch.filters:IsClear("Search") or not rematch.filters:IsClear("Stats")) and filters[2].RawSearchText or ""
 		rematch.petsPanel.Top.SearchBox:SetText(rawSearch)
+		rematch.petsPanel.Top.StatBar:SetSearchText(filters[2].RawStatSearchText)
 		settings.Filters.RawSearchText = rawSearch
 	end
 end

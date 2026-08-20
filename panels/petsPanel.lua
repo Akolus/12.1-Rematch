@@ -7,6 +7,12 @@ rematch.frame:Register("petsPanel")
 
 local petList = {} -- ordered list of petIDs to display
 
+local statBoxInfo = {
+    {"Health",L["HP  < = >"]},
+    {"Power",L["Power  < = >"]},
+    {"Speed",L["Speed  < = >"]},
+}
+
 -- details of the three typebar tabs
 local typebarTabInfo = {
     [1] = {L.TYPEBAR_TAB_TYPE,1,1,0.5,"Types",C.TYPEBAR_TAB_TYPE},
@@ -15,8 +21,21 @@ local typebarTabInfo = {
 }
 
 rematch.events:Register(rematch.petsPanel,"PLAYER_LOGIN",function(self)
-    self.Top.SearchBox.Instructions:SetText(L["Search Pets"])
+    self.Top.SearchBox.Instructions:SetText(L["Search Pets / Abilities"])
     self.Top.FilterButton:SetText(FILTER)
+
+    for _,info in ipairs(statBoxInfo) do
+        local stat,instructions = info[1],info[2]
+        local box = self.Top.StatBar[stat]
+        box.stat = stat
+        box.Instructions:SetText(instructions)
+        box:SetText(type(settings.Filters.RawStatSearchText)=="table" and settings.Filters.RawStatSearchText[stat] or "")
+        box.Clear:HookScript("OnClick",function()
+            rematch.petsPanel:ApplySearchFilters()
+        end)
+    end
+    self.Top.StatBar:SetScript("OnSizeChanged",self.Top.StatBar.Layout)
+    self.Top.StatBar:Layout()
 
     -- setup autoScrollBox
     -- (note: not using autoscrollbox's search for petsPanel since search results sorted by relevance and other stuff)
@@ -38,8 +57,7 @@ rematch.events:Register(rematch.petsPanel,"PLAYER_LOGIN",function(self)
 
     -- when searchbox clear button clicked, also clear search filter and update (editbox only updates panel on userInput)
     self.Top.SearchBox.Clear:HookScript("OnClick",function()
-        rematch.filters:SetSearch("")
-        rematch.petsPanel:Update()
+        rematch.petsPanel:ApplySearchFilters()
     end)
 
     -- if logging in with search filters enabled, put the search text in the search box
@@ -68,6 +86,7 @@ function rematch.petsPanel:Configure()
     self.Top.ToggleButton:SetDirection(settings.UseTypeBar and "up" or "down",0,0)
     self.Top:SetHeight(settings.UseTypeBar and C.PETPANEL_TOP_EXPANDED_HEIGHT or C.PETPANEL_TOP_COLLAPSED_HEIGHT)
     self.Top.TypeBar:SetShown(settings.UseTypeBar)
+    self.Top.StatBar:Layout()
 end
 
 function rematch.petsPanel:Update()
@@ -84,6 +103,7 @@ function rematch.petsPanel:Update()
         self.ResultsBar:Hide()
         self.List:SetPoint("TOPLEFT",self.Top,"BOTTOMLEFT",0,-2)
         self.Top.SearchBox:SetText("")
+        self.Top.StatBar:SetSearchText()
     end
     self.List:Select("Summoned",C_PetJournal.GetSummonedPetGUID(),true)
     self.List:Update()
@@ -230,12 +250,62 @@ end
 
 --[[ SearchBox ]]
 
+function rematch.petsPanel.Top.StatBar:Layout()
+    local available = self:GetWidth()-10 -- three-pixel margins and two two-pixel gaps
+    if available>0 then
+        local width = floor(available/3)
+        self.Health:SetWidth(width)
+        self.Power:SetWidth(width)
+        self.Speed:SetWidth(available-width*2)
+    end
+end
+
+function rematch.petsPanel.Top.StatBar:GetSearchText()
+    local values = {}
+    for _,info in ipairs(statBoxInfo) do
+        local stat = info[1]
+        values[stat] = self[stat]:GetText()
+    end
+    return values
+end
+
+function rematch.petsPanel.Top.StatBar:SetSearchText(values)
+    for _,info in ipairs(statBoxInfo) do
+        local stat = info[1]
+        self[stat]:SetText(type(values)=="table" and values[stat] or "")
+    end
+end
+
+function rematch.petsPanel:ApplySearchFilters()
+    rematch.filters:SetSearch(self.Top.SearchBox:GetText(),self.Top.StatBar:GetSearchText())
+    self:Update()
+end
+
+local function statBoxOnTextChanged(self,userInput)
+    local text = self:GetText()
+    local hasText = text and text:trim():len()>0
+    local isValid = rematch.filters:IsValidStatSearch(text)
+    if isValid then
+        self:SetTextColor(1,1,1)
+    else
+        self:SetTextColor(1,0.25,0.25)
+    end
+    self.Clear:SetShown(hasText)
+    self.Instructions:SetShown(not hasText)
+    if userInput and isValid then
+        rematch.petsPanel:ApplySearchFilters()
+    end
+end
+
+for _,info in ipairs(statBoxInfo) do
+    rematch.petsPanel.Top.StatBar[info[1]].OnTextChanged = statBoxOnTextChanged
+end
+
 function rematch.petsPanel.Top.SearchBox:OnTextChanged(userInput)
     local text = self:GetText()
     -- only run a filter if the user made the change
     if userInput then
-        rematch.filters:SetSearch(text)
-        rematch.petsPanel:Update()
+        rematch.petsPanel:ApplySearchFilters()
     end
     -- regardless whether user changed input, update clear/instructions based on presence of text
     local hasText = text and text:trim():len()>0
@@ -263,6 +333,7 @@ end
 
 function rematch.petsPanel.ResultsBar.Clear:OnClick()
     rematch.filters:ClearAll()
+    rematch.petsPanel.Top.StatBar:SetSearchText()
     rematch.petsPanel:Update()
     rematch.menus:RefreshMenus()
 end

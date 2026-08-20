@@ -137,7 +137,7 @@ end
 
 -- when focus lost, hide controls at bottom unless mouse is over bottom controls or resize button
 function rematch.notes.Content.ScrollFrame.EditBox:OnEditFocusLost()
-    if (MouseIsOver(rematch.notes.Content.Bottom) or MouseIsOver(rematch.notes.Content.ScrollFrame.ResizeGrip)) and not self.loseFocus then
+    if (rematch.notes.Content.Bottom:IsMouseOver() or rematch.notes.Content.ScrollFrame.ResizeGrip:IsMouseOver()) and not self.loseFocus then
         self:SetFocus(true)
     else
         self.loseFocus = nil

@@ -251,6 +251,14 @@ local defaults = {
     EnemyAbilityCooldownX = 0,
     EnemyAbilityCooldownY = 0,
     EnemyAbilityRemainingFontSize = 16,
+    EnemyAbilityBarX = false,
+    EnemyAbilityBarY = false,
+    EnemyAbilityScale = 100,
+
+    -- Pet Battle Data/Pass/Autobattle controls
+    BattleControlsX = false,
+    BattleControlsY = false,
+    BattleControlsScale = 100,
 }
 
 -- metatable must remain empty for this to reliably work; which it will because setter never rawsets

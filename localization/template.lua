@@ -922,6 +922,11 @@ L["All done leveling pets!"] = nil
 
 -- roster\filters.lua
 L["Stats"] = nil
+L["Search Pets / Abilities"] = nil
+L["HP  < = >"] = nil
+L["Power  < = >"] = nil
+L["Speed  < = >"] = nil
+L["\n\nTo require multiple abilities, separate two or three ability names with commas, such as %sBite, Solar Beam, Sunlight\124r. The HP, Power and Speed fields accept <, = or > followed by a number. Uncollected pets use possible rare level 25 breed stats; each entered stat may be satisfied by a different breed."] = nil
 L["Favorites"] = nil
 L["Types"] = nil
 L["Sources"] = nil

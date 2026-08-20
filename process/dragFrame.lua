@@ -118,11 +118,11 @@ function rematch.dragFrame:GLOBAL_MOUSE_UP()
     local focus = GetMouseFoci()[1]
     if focus then
         -- if mouse is over teamsPanel(GlowFrame) then any team/group combination safe to handle
-        if MouseIsOver(self.GlowFrame) and rematch.teamsPanel:IsVisible() and (focus.groupID or focus.teamID or focus==rematch.teamsPanel.List.CaptureButton) then
+        if self.GlowFrame:IsMouseOver() and rematch.teamsPanel:IsVisible() and (focus.groupID or focus.teamID or focus==rematch.teamsPanel.List.CaptureButton) then
             self:HandleReceiveDrag(focus)
         end
         -- but if mouse is over teamTabs it can only be a team on the cursor
-        if MouseIsOver(rematch.teamTabs) and rematch.teamTabs:IsVisible() and focus.groupID and self:GetCursorInfo()==C.CURSOR_TYPE_TEAM then
+        if rematch.teamTabs:IsMouseOver() and rematch.teamTabs:IsVisible() and focus.groupID and self:GetCursorInfo()==C.CURSOR_TYPE_TEAM then
             self:HandleReceiveDrag(focus)
         end
     end
@@ -248,7 +248,7 @@ function rematch.dragFrame.GlowFrame:OnUpdate(elapsed)
 
     local showGlowLine = false
     local showGlowArea = false
-    local isMouseOver = MouseIsOver(self) -- is mouse over GlowFrame
+    local isMouseOver = self:IsMouseOver() -- is mouse over GlowFrame
 
     self.GlowLine.direction = nil -- potentially one of C.DRAG_DIRECTION_PREV/NEXT/END
 

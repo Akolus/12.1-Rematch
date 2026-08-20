@@ -385,7 +385,7 @@ end
 -- OnUpdate closes flyout after C.FLYOUT_OPEN_TIMER passes with mouse not on the flyout or ability that opened it
 local flyoutTimer = 0
 function rematch.loadoutPanel.AbilityFlyout:OnUpdate(elapsed)
-    if self.anchoredTo and (MouseIsOver(self.anchoredTo) or MouseIsOver(self)) then
+    if self.anchoredTo and (self.anchoredTo:IsMouseOver() or self:IsMouseOver()) then
         flyoutTimer = 0
     else
         flyoutTimer = flyoutTimer + elapsed

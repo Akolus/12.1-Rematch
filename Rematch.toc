@@ -129,3 +129,5 @@ process\petHerder.lua
 process\badges.lua
 process\enemyAbilities.lua
 process\battleData.lua
+process\battleControls.lua
+process\battleActionBar.lua

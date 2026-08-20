@@ -15,6 +15,10 @@ local currentRound = 0
 local bar
 local configFrame
 local eventFrame = CreateFrame("Frame")
+local applyLayout
+
+local MIN_SCALE_PERCENT = 50
+local MAX_SCALE_PERCENT = 200
 
 -- ---------------------------------------------------------------------------
 -- Settings
@@ -35,7 +39,50 @@ local function getSettings()
 
         barX = 0,
         barY = 28,
+        savedBarX = rematch.settings.EnemyAbilityBarX,
+        savedBarY = rematch.settings.EnemyAbilityBarY,
     }
+end
+
+local function getScalePercent()
+    local percent = math.floor((tonumber(rematch.settings.EnemyAbilityScale) or 100) + 0.5)
+    return math.max(MIN_SCALE_PERCENT, math.min(MAX_SCALE_PERCENT, percent))
+end
+
+local function getCenterOffset(frame)
+    local frameX, frameY = frame:GetCenter()
+    local parentX, parentY = UIParent:GetCenter()
+    if not frameX or not frameY or not parentX or not parentY then
+        return
+    end
+
+    local frameScale = frame.GetEffectiveScale and frame:GetEffectiveScale() or 1
+    local parentScale = UIParent.GetEffectiveScale and UIParent:GetEffectiveScale() or 1
+    return (frameX * frameScale - parentX * parentScale) / parentScale,
+        (frameY * frameScale - parentY * parentScale) / parentScale
+end
+
+local function changeScale(delta)
+    if delta == 0 then
+        return
+    end
+
+    local percent = getScalePercent()
+    percent = math.max(MIN_SCALE_PERCENT, math.min(MAX_SCALE_PERCENT, percent + (delta > 0 and 1 or -1)))
+    rematch.settings.EnemyAbilityScale = percent
+
+    if applyLayout then
+        applyLayout()
+    end
+end
+
+local function setDefaultAnchor(db)
+    bar:ClearAllPoints()
+    if PetBattleFrame and PetBattleFrame.BottomFrame then
+        bar:SetPoint("BOTTOM", PetBattleFrame.BottomFrame, "TOP", db.barX, db.barY)
+    else
+        bar:SetPoint("CENTER", UIParent, "CENTER", db.barX, -160 + db.barY)
+    end
 end
 
 local fontChoices = {
@@ -170,43 +217,98 @@ local function createAbilityButton(parent, index)
         GameTooltip:Hide()
     end)
 
+    button:RegisterForDrag("LeftButton")
+    button:EnableMouseWheel(true)
+    button:SetScript("OnDragStart", function(self)
+        if not IsShiftKeyDown() or not bar then
+            return
+        end
+
+        if PetBattlePrimaryAbilityTooltip then
+            PetBattlePrimaryAbilityTooltip:Hide()
+        end
+        GameTooltip:Hide()
+
+        bar.__rematchMoving = true
+        bar:StartMoving()
+    end)
+
+    button:SetScript("OnDragStop", function()
+        if not bar or not bar.__rematchMoving then
+            return
+        end
+
+        bar:StopMovingOrSizing()
+        bar.__rematchMoving = false
+
+        local barX, barY = getCenterOffset(bar)
+        if barX and barY then
+            rematch.settings.EnemyAbilityBarX = math.floor(barX + 0.5)
+            rematch.settings.EnemyAbilityBarY = math.floor(barY + 0.5)
+            bar.__rematchCenterX = rematch.settings.EnemyAbilityBarX
+            bar.__rematchCenterY = rematch.settings.EnemyAbilityBarY
+        end
+    end)
+
+    button:SetScript("OnMouseWheel", function(_, delta)
+        if IsControlKeyDown() then
+            changeScale(delta)
+        end
+    end)
+
     return button
 end
 
-local function applyLayout()
+applyLayout = function()
     if not bar then
         return
     end
 
     local db = getSettings()
+    local scale = getScalePercent() / 100
+    local centerX = type(db.savedBarX) == "number" and db.savedBarX or bar.__rematchCenterX
+    local centerY = type(db.savedBarY) == "number" and db.savedBarY or bar.__rematchCenterY
+
+    -- Establish the original default center once, then use a screen-centered
+    -- anchor for every layout. Resizing the icons can therefore expand evenly
+    -- in all directions without moving the bar.
+    if type(centerX) ~= "number" or type(centerY) ~= "number" then
+        local baseWidth = db.iconSize * 3 + db.spacing * 2
+        bar:SetScale(1)
+        bar:SetSize(baseWidth, db.iconSize)
+        setDefaultAnchor(db)
+        centerX, centerY = getCenterOffset(bar)
+        centerX = centerX or 0
+        centerY = centerY or (-160 + db.barY)
+    end
+
+    bar.__rematchCenterX = centerX
+    bar.__rematchCenterY = centerY
 
     for i = 1, 3 do
         local button = abilityButtons[i]
-        button:SetSize(db.iconSize, db.iconSize)
+        button:SetSize(db.iconSize * scale, db.iconSize * scale)
 
         button:ClearAllPoints()
         if i == 1 then
             button:SetPoint("LEFT", bar, "LEFT", 0, 0)
         else
-            button:SetPoint("LEFT", abilityButtons[i-1], "RIGHT", db.spacing, 0)
+            button:SetPoint("LEFT", abilityButtons[i-1], "RIGHT", db.spacing * scale, 0)
         end
 
         button.MaxCooldownText:ClearAllPoints()
-        button.MaxCooldownText:SetPoint("TOPRIGHT", db.cooldownX, db.cooldownY)
+        button.MaxCooldownText:SetPoint("TOPRIGHT", db.cooldownX * scale, db.cooldownY * scale)
 
-        applyFont(button.MaxCooldownText, db.cooldownFontObject, db.cooldownFontSize)
-        applyFont(button.CooldownText, db.remainingFontObject, db.remainingFontSize)
+        applyFont(button.MaxCooldownText, db.cooldownFontObject, db.cooldownFontSize * scale)
+        applyFont(button.CooldownText, db.remainingFontObject, db.remainingFontSize * scale)
     end
 
-    local width = db.iconSize * 3 + db.spacing * 2
-    bar:SetSize(width, db.iconSize)
+    local width = (db.iconSize * 3 + db.spacing * 2) * scale
+    bar:SetScale(1)
+    bar:SetSize(width, db.iconSize * scale)
 
     bar:ClearAllPoints()
-    if PetBattleFrame and PetBattleFrame.BottomFrame then
-        bar:SetPoint("BOTTOM", PetBattleFrame.BottomFrame, "TOP", db.barX, db.barY)
-    else
-        bar:SetPoint("CENTER", UIParent, "CENTER", db.barX, -160 + db.barY)
-    end
+    bar:SetPoint("CENTER", UIParent, "CENTER", centerX, centerY)
 end
 
 local updateBar
@@ -219,6 +321,8 @@ local function ensureBar()
     bar = CreateFrame("Frame", "RematchEnemyAbilityBar", UIParent)
     bar:SetFrameStrata("HIGH")
     bar:SetClampedToScreen(true)
+    bar:SetMovable(true)
+    bar:EnableMouse(true)
 
     -- Pet-selection visibility can change without a convenient addon event.
     -- Poll very lightly so the ability bar disappears/reappears immediately.

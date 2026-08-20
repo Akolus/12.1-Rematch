@@ -76,8 +76,11 @@ local strongVsCache = rematch.odTable:Create() -- on-demand table to cache stron
 local strongNeeded = {} -- reused table to track which strong vs have passed
 local searchRelevance = {} -- cache for search results of petID/speciesIDs
 local abilityRelevance = rematch.odTable:Create() -- cache for search results of abilities
+local abilityNameCache = {} -- cache ability names during multi-ability searches
 local sortStats = {} -- as pets pass evaluation, save the chosen sort stat here
 local favoritesCache = {} -- lookup table of petIDs that are favorited for sort purposes
+
+local statSearchOrder = {"Health","Power","Speed"}
 
 -- for parsing searches, use localized terms (or non-localized h, p, s and l for shorter version)
 local searchStats = {
@@ -167,6 +170,10 @@ function rematch.filters:ClearAll()
             rematch.filters:Clear(info[1])
         end
     end
+    settings.Filters.RawStatSearchText = {}
+    if rematch.petsPanel and rematch.petsPanel.Top and rematch.petsPanel.Top.StatBar and rematch.petsPanel.Top.StatBar.SetSearchText then
+        rematch.petsPanel.Top.StatBar:SetSearchText()
+    end
     dirty = true
 end
 
@@ -239,14 +246,55 @@ end
 
 --[[ Search Filter Parsing ]]
 
-function rematch.filters:SetSearch(text)
+local function makeSearchPattern(text)
+    text = text:trim()
+    local pattern = rematch.utils:DesensitizeText(text)
+    if pattern:match("^\".-\"$") then -- quoted terms are exact searches
+        pattern = "^"..pattern:gsub("^\"",""):gsub("\"$","").."$"
+    end
+    return pattern,text:len()
+end
+
+-- returns the inclusive low/high range represented by a stat-row value such as >1600, =325 or <300
+function rematch.filters:GetStatSearchRange(text)
+    text = type(text)=="string" and text:gsub("%s+","") or ""
+    if text=="" then
+        return
+    end
+    local operator,value = text:match("^([<>=])(%d+)$")
+    if not operator then
+        value = text:match("^(%d+)$")
+        operator = value and "=" or nil
+    end
+    value = tonumber(value)
+    if operator and value then
+        if operator=="=" then return value,value end
+        if operator=="<" then return 1,value-1 end
+        if operator==">" then return value+1,9999 end
+    end
+end
+
+function rematch.filters:IsValidStatSearch(text)
+    return not text or text:trim()=="" or rematch.filters:GetStatSearchRange(text)~=nil
+end
+
+function rematch.filters:SetSearch(text,statTexts)
     -- wipe any existing search; this will set dirty flag too
     rematch.filters:Clear("Search")
     rematch.filters:Clear("Stats")
-    if not text or text:len()==0 then -- no search text, leave
-        return
+    text = type(text)=="string" and text or ""
+    settings.Filters.RawSearchText = text -- keep the search box separate from the dedicated stat row
+    settings.Filters.RawStatSearchText = {}
+    if type(statTexts)=="table" then
+        for _,stat in ipairs(statSearchOrder) do
+            local statText = type(statTexts[stat])=="string" and statTexts[stat] or ""
+            settings.Filters.RawStatSearchText[stat] = statText
+        end
+    elseif rematch.petsPanel and rematch.petsPanel.Top and rematch.petsPanel.Top.StatBar and rematch.petsPanel.Top.StatBar.SetSearchText then
+        -- programmatic searches (for example, opening a pet from the journal) replace stat-row filters too
+        rematch.petsPanel.Top.StatBar:SetSearchText()
     end
-    settings.Filters.RawSearchText = text -- before any parsing/changes are done, keep the original text
+
     -- pull out any stat operations and put them into Stats filterGroup (in the gsub function)
     text = text:gsub("(%w+[<>=]%d+)",rematch.filters.ParseStatOperators)
     text = text:gsub("(%w+=%d+%-%d)",rematch.filters.ParseStatRange)
@@ -255,12 +303,40 @@ function rematch.filters:SetSearch(text)
     text = text:trim()
     -- any remaining text is intended for a traditional search
     if text:len()>0 then
-        local pattern = rematch.utils:DesensitizeText(text)
-        if pattern:match("^\".-\"$") then -- if there are quotes around remaing search term, this is an ^exact search$
-            pattern = "^"..pattern:gsub("^\"",""):gsub("\"$","").."$" -- strip out quotes and append ^ and $
+        local terms = {}
+        if text:find("[,;]") then
+            for term in text:gmatch("[^,;]+") do
+                term = term:trim()
+                if term:len()>0 then
+                    tinsert(terms,term)
+                end
+            end
         end
-        rematch.filters:Set("Search","Pattern",pattern)
-        rematch.filters:Set("Search","Length",text:len())
+        if #terms>1 and #terms<=3 then
+            local patterns,lengths = {},{}
+            for index,term in ipairs(terms) do
+                patterns[index],lengths[index] = makeSearchPattern(term)
+            end
+            rematch.filters:Set("Search","Patterns",patterns)
+            rematch.filters:Set("Search","Lengths",lengths)
+        elseif #terms>3 then
+            -- multi-ability searches intentionally support up to three terms
+            rematch.filters:Set("Search","TooManyTerms",true)
+        else
+            local pattern,length = makeSearchPattern(terms[1] or text)
+            rematch.filters:Set("Search","Pattern",pattern)
+            rematch.filters:Set("Search","Length",length)
+        end
+    end
+
+    -- dedicated stat fields override an inline expression for the same stat
+    if type(statTexts)=="table" then
+        for _,stat in ipairs(statSearchOrder) do
+            local low,high = rematch.filters:GetStatSearchRange(statTexts[stat])
+            if low and high then
+                rematch.filters:Set("Stats",stat,{low,high})
+            end
+        end
     end
 end
 
@@ -602,45 +678,125 @@ end
 
 -- Stats is generated from the search filters (SetSearch and the Parse gsub functions) and confirms the defined
 -- stats are within the defined ranges
+local function statValueMatches(value,range)
+    return not range or (value and value>=range[1] and value<=range[2])
+end
+
+local function anyBreedMatchesStat(breeds,statIndex,range)
+    if not range then
+        return true
+    end
+    for _,breed in ipairs(breeds) do
+        if statValueMatches(breed[statIndex],range) then
+            return true
+        end
+    end
+    return false
+end
+
 function rematch.filters.funcs:Stats(petInfo)
-    if not petInfo.isOwned or not petInfo.canBattle then
-        return -- all pets with stat searches must be collected pets that can battle
+    if not petInfo.canBattle then
+        return false
     end
-    if self.Level then
-        local level,low,high = petInfo.level,self.Level[1],self.Level[2]
-        if level<low or level>high then return false end
+
+    if petInfo.isOwned then
+        if not statValueMatches(petInfo.level,self.Level) then return false end
+        if not statValueMatches(petInfo.maxHealth,self.Health) then return false end
+        if not statValueMatches(petInfo.power,self.Power) then return false end
+        if not statValueMatches(petInfo.speed,self.Speed) then return false end
+        return true
     end
-    if self.Health then
-        local health,low,high = petInfo.maxHealth,self.Health[1],self.Health[2]
-        if health<low or health>high then return false end
+
+    -- A level-only search keeps its historical collected-pets behavior. When an actual
+    -- stat is requested, uncollected species are evaluated at rare level 25 using every
+    -- legal breed. Each requested stat can be satisfied by a different possible breed.
+    if not (self.Health or self.Power or self.Speed) then
+        return false
     end
-    if self.Power then
-        local power,low,high = petInfo.power,self.Power[1],self.Power[2]
-        if power<low or power>high then return false end
+    if self.Level and not statValueMatches(25,self.Level) then
+        return false
     end
-    if self.Speed then
-        local speed,low,high = petInfo.speed,self.Speed[1],self.Speed[2]
-        if speed<low or speed>high then return false end
+    if type(petInfo.speciesID)~="number" or not rematch.breedInfo then
+        return false
     end
-    return true
+    local breeds = rematch.breedInfo:GetBreedTable(petInfo.speciesID)
+    if #breeds==0 then
+        return false
+    end
+    return anyBreedMatchesStat(breeds,2,self.Health)
+        and anyBreedMatchesStat(breeds,3,self.Power)
+        and anyBreedMatchesStat(breeds,4,self.Speed)
 end
 
 -- after a filter pass, wipe the caches used
 function rematch.filters.postFuncs:Search()
     wipe(searchRelevance)
     wipe(abilityRelevance)
+    wipe(abilityNameCache)
 end
 
--- for now doing a single term search
+-- all comma/semicolon-separated terms must match distinct abilities from the pet's six possible abilities
+local function matchesAbilityTerms(search,petInfo)
+    if not petInfo.abilityList then
+        return false
+    end
+    local candidates = {}
+    for termIndex,pattern in ipairs(search.Patterns) do
+        candidates[termIndex] = {}
+        for _,abilityID in ipairs(petInfo.abilityList) do
+            local name = abilityNameCache[abilityID]
+            if name==nil then
+                name = select(2,C_PetBattles.GetAbilityInfoByID(abilityID)) or false
+                abilityNameCache[abilityID] = name
+            end
+            if name and rematch.utils:match(pattern,name) then
+                candidates[termIndex][abilityID] = true
+            end
+        end
+        if not next(candidates[termIndex]) then
+            return false
+        end
+    end
+
+    local used = {}
+    local function assignAbility(termIndex)
+        if termIndex>#candidates then
+            return true
+        end
+        for abilityID in pairs(candidates[termIndex]) do
+            if not used[abilityID] then
+                used[abilityID] = true
+                if assignAbility(termIndex+1) then
+                    return true
+                end
+                used[abilityID] = nil
+            end
+        end
+        return false
+    end
+    return assignAbility(1)
+end
+
 function rematch.filters.funcs:Search(petInfo)
     local pattern = self.Pattern
     local length = self.Length
     local match = rematch.utils.match
-    local speciesID = petInfo.speciesID
 
     -- if petInfo is invalid (perhaps pet in roster just released)
     if not petInfo or not petInfo.name then
         return false
+    end
+    local speciesID = petInfo.speciesID
+
+    if self.TooManyTerms then
+        return false
+    elseif self.Patterns then
+        if searchRelevance[speciesID]~=nil then
+            return searchRelevance[speciesID]
+        end
+        local isMatch = matchesAbilityTerms(self,petInfo)
+        searchRelevance[speciesID] = isMatch and 7 or false
+        return isMatch
     end
 
     -- customName is the only searchable attribute that can differ within a species, and has highest relevance
@@ -914,4 +1070,5 @@ function rematch.filters:LoadFavoriteFilter(filters)
             settings.Filters[filterGroup] = savedGroup
         end
     end
+    settings.Filters.RawStatSearchText = CopyTable(filters.RawStatSearchText or {})
 end

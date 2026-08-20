@@ -236,11 +236,11 @@ function rematch.queuePanel.List.GlowFrame:OnUpdate(elapsed)
     local scale = focus:GetEffectiveScale()
     local centerX,centerY = focus:GetCenter()
 
-    local isMouseOver = MouseIsOver(self) -- is mouse over GlowFrame
+    local isMouseOver = self:IsMouseOver() -- is mouse over GlowFrame
 
     self.GlowLine.direction = nil -- potentially one of C.DRAG_DIRECTION_PREV/NEXT/END
 
-    if MouseIsOver(self) then
+    if self:IsMouseOver() then
         if focus and focus.petID then
             if (cursorY/scale)>centerY then -- if cursor is in top half of button, anchor to top
                 self.GlowLine:SetPoint("CENTER",focus,"TOP")
