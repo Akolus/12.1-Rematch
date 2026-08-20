@@ -8,11 +8,11 @@ rematch.battleControls = rematch.battleControls or {}
 local module = rematch.battleControls
 
 local BUTTON_HEIGHT = 30
-local BUTTON_GAP = 6
+local BUTTON_GAP = 1
 local BUTTON_WIDTHS = {
     battleData = 104,
     pass = 112,
-    auto = 164,
+    auto = 180,
 }
 local BUTTON_X = {
     battleData = 0,
@@ -22,25 +22,52 @@ local BUTTON_X = {
 local TOTAL_WIDTH = BUTTON_WIDTHS.battleData + BUTTON_WIDTHS.pass + BUTTON_WIDTHS.auto + BUTTON_GAP * 2
 local MIN_SCALE_PERCENT = 50
 local MAX_SCALE_PERCENT = 200
+local KEY_AREA_WIDTH = 74
+local KEY_BUTTON_SIZE = 20
 local controlFrame
+local keybindCaptureFrame
+local keybindClickCatcher
 
 local function setTextureColor(texture, color)
     texture:SetColorTexture(color[1], color[2], color[3], color[4] or 1)
 end
 
+local function setOnePixelWidth(texture)
+    -- PixelUtil accounts for the current UI/effective scale, preventing a
+    -- one-unit divider from rasterizing across two physical screen pixels.
+    if _G.PixelUtil and PixelUtil.SetWidth then
+        -- A zero requested width with a one-pixel minimum resolves to exactly
+        -- one physical pixel instead of the nearest width to one UI unit.
+        PixelUtil.SetWidth(texture, 0, 1)
+    else
+        local effectiveScale = texture.GetEffectiveScale and texture:GetEffectiveScale() or 1
+        local _, physicalHeight = GetPhysicalScreenSize and GetPhysicalScreenSize()
+        local pixelToUI = physicalHeight and physicalHeight > 0 and 768 / physicalHeight or 1
+        texture:SetWidth(pixelToUI / math.max(effectiveScale, 0.01))
+    end
+
+    if texture.SetSnapToPixelGrid then
+        texture:SetSnapToPixelGrid(true)
+    end
+    if texture.SetTexelSnappingBias then
+        texture:SetTexelSnappingBias(0)
+    end
+end
+
 local colors = {
-    background = {0.035, 0.05, 0.065, 0.96},
-    backgroundHover = {0.075, 0.105, 0.135, 0.98},
-    backgroundPressed = {0.02, 0.03, 0.045, 1},
-    backgroundDisabled = {0.025, 0.03, 0.04, 0.9},
-    border = {0.25, 0.31, 0.36, 1},
-    borderHover = {0.95, 0.67, 0.16, 1},
-    borderDisabled = {0.13, 0.15, 0.17, 1},
-    accent = {0.95, 0.58, 0.08, 1},
+    background = {0, 0, 0, 0},
+    backgroundHover = {0.10, 0.135, 0.17, 0.99},
+    backgroundPressed = {0.03, 0.045, 0.06, 1},
+    backgroundDisabled = {0, 0, 0, 0},
+    border = {0, 0, 0, 1},
     text = {0.92, 0.94, 0.96, 1},
     textDisabled = {0.43, 0.46, 0.49, 1},
     keyBackground = {0.015, 0.025, 0.035, 0.9},
     keyText = {0.67, 0.78, 0.88, 1},
+    keyButtonText = {1, 0.69, 0.20, 1},
+    keyButtonTextHover = {1, 0.9, 0.58, 1},
+    captureBackground = {0.035, 0.05, 0.065, 0.98},
+    separator = {0.25, 0.72, 1, 0.82},
 }
 
 local function getScalePercent()
@@ -66,11 +93,13 @@ local function getCenterOffset(frame)
 end
 
 local function saveControlPosition()
-    if not controlFrame then
+    local frame = rematch.battleActionBar and rematch.battleActionBar.GetFrame
+        and rematch.battleActionBar:GetFrame() or controlFrame
+    if not frame then
         return
     end
 
-    local x, y = getCenterOffset(controlFrame)
+    local x, y = getCenterOffset(frame)
     if not x or not y then
         return
     end
@@ -79,14 +108,14 @@ local function saveControlPosition()
     y = math.floor(y + 0.5)
     rematch.settings.BattleControlsX = x
     rematch.settings.BattleControlsY = y
-    controlFrame.__rematchCenterX = x
-    controlFrame.__rematchCenterY = y
+    frame.__rematchCenterX = x
+    frame.__rematchCenterY = y
 
-    controlFrame:ClearAllPoints()
-    controlFrame:SetPoint("CENTER", UIParent, "CENTER", x, y)
+    frame:ClearAllPoints()
+    frame:SetPoint("CENTER", UIParent, "CENTER", x, y)
 end
 
-local function changeControlScale(delta)
+function module:ChangeScale(delta)
     if delta == 0 then
         return
     end
@@ -95,8 +124,9 @@ local function changeControlScale(delta)
     percent = math.max(MIN_SCALE_PERCENT, math.min(MAX_SCALE_PERCENT, percent + (delta > 0 and 1 or -1)))
     rematch.settings.BattleControlsScale = percent
 
-    if module.Refresh then
-        module:Refresh()
+    module:Refresh(true)
+    if rematch.battleActionBar and rematch.battleActionBar.Refresh then
+        rematch.battleActionBar:Refresh()
     end
 end
 
@@ -113,23 +143,18 @@ local function updateButtonState(button)
 
     local enabled = not button.IsEnabled or button:IsEnabled()
     local background = colors.background
-    local border = colors.border
     local text = colors.text
 
     if not enabled then
         background = colors.backgroundDisabled
-        border = colors.borderDisabled
         text = colors.textDisabled
     elseif button.__rematchModernPressed then
         background = colors.backgroundPressed
-        border = colors.borderHover
     elseif button.__rematchModernHover then
         background = colors.backgroundHover
-        border = colors.borderHover
     end
 
     setTextureColor(button.__rematchModernBackground, background)
-    setBorderColor(button, border)
 
     local fontString = button:GetFontString()
     if fontString then
@@ -173,7 +198,6 @@ local function styleButton(button)
                 button.__rematchBaseFont[3]
             )
         end
-        button.__rematchModernAccent:SetHeight(2 * getControlScale())
         updateButtonState(button)
         return
     end
@@ -187,19 +211,6 @@ local function styleButton(button)
     background:SetAllPoints()
     setTextureColor(background, colors.background)
     button.__rematchModernBackground = background
-
-    createBorder(button, "TOPLEFT", "TOPLEFT", 0, 0, "TOPRIGHT", "TOPRIGHT", 0, -1)
-    createBorder(button, "BOTTOMLEFT", "BOTTOMLEFT", 0, 1, "BOTTOMRIGHT", "BOTTOMRIGHT", 0, 0)
-    createBorder(button, "TOPLEFT", "TOPLEFT", 0, -1, "BOTTOMLEFT", "BOTTOMLEFT", 1, 1)
-    createBorder(button, "TOPRIGHT", "TOPRIGHT", -1, -1, "BOTTOMRIGHT", "BOTTOMRIGHT", 0, 1)
-
-    local accent = button:CreateTexture(nil, "ARTWORK")
-    accent.__rematchModernTexture = true
-    accent:SetPoint("BOTTOMLEFT", button, "BOTTOMLEFT", 1, 1)
-    accent:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -1, 1)
-    accent:SetHeight(2)
-    setTextureColor(accent, colors.accent)
-    button.__rematchModernAccent = accent
 
     local fontString = button:GetFontString()
     if fontString then
@@ -253,10 +264,272 @@ local function fitHotKey(autoButton)
         local fontSize = 11 * scale
         local minimumSize = 8 * scale
         hotKey:SetFont(font, fontSize, "OUTLINE")
-        while hotKey:GetStringWidth() > 48 * scale and fontSize > minimumSize do
+        while hotKey:GetStringWidth() > 44 * scale and fontSize > minimumSize do
             fontSize = fontSize - scale
             hotKey:SetFont(font, fontSize, "OUTLINE")
         end
+    end
+end
+
+local modifierKeys = {
+    LSHIFT = true,
+    RSHIFT = true,
+    LCTRL = true,
+    RCTRL = true,
+    LALT = true,
+    RALT = true,
+    LMETA = true,
+    RMETA = true,
+}
+
+local function closeKeybindCapture()
+    if keybindClickCatcher then
+        keybindClickCatcher:Hide()
+    end
+    if keybindCaptureFrame then
+        keybindCaptureFrame:EnableKeyboard(false)
+        keybindCaptureFrame:Hide()
+    end
+end
+
+local function ensureKeybindClickCatcher()
+    if keybindClickCatcher then
+        return keybindClickCatcher
+    end
+
+    local catcher = CreateFrame("Button", "RematchAutobattleKeybindClickCatcher", UIParent)
+    catcher:SetAllPoints(UIParent)
+    catcher:SetFrameStrata("HIGH")
+    catcher:EnableMouse(true)
+    catcher:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    catcher:SetScript("OnClick", closeKeybindCapture)
+    catcher:Hide()
+    keybindClickCatcher = catcher
+    return catcher
+end
+
+local function buildBindingKey(key)
+    if not key or modifierKeys[key] then
+        return nil
+    end
+    if key == "ESCAPE" then
+        return false
+    end
+
+    local parts = {}
+    if IsAltKeyDown and IsAltKeyDown() then
+        parts[#parts + 1] = "ALT"
+    end
+    if IsControlKeyDown and IsControlKeyDown() then
+        parts[#parts + 1] = "CTRL"
+    end
+    if IsShiftKeyDown and IsShiftKeyDown() then
+        parts[#parts + 1] = "SHIFT"
+    end
+    if IsMetaKeyDown and IsMetaKeyDown() then
+        parts[#parts + 1] = "META"
+    end
+    parts[#parts + 1] = key
+    return table.concat(parts, "-")
+end
+
+local function saveAutobattleKey(autoButton, binding)
+    local addon = _G.PetBattleScripts
+    if not addon or type(addon.SetSetting) ~= "function" then
+        return false
+    end
+
+    addon:SetSetting("autoButtonHotKey", binding)
+    if autoButton and autoButton.HotKey then
+        local primary = binding
+        local secondary
+        if type(addon.GetSetting) == "function" then
+            primary = addon:GetSetting("autoButtonHotKey")
+            secondary = addon:GetSetting("autoButtonHotKey2")
+        end
+        primary = primary ~= "" and primary or nil
+        secondary = secondary ~= "" and secondary or nil
+        autoButton.HotKey:SetText(
+            primary and secondary and (primary .. "/" .. secondary) or primary or secondary or ""
+        )
+        fitHotKey(autoButton)
+    end
+    closeKeybindCapture()
+    return true
+end
+
+local function showKeybindCapture(autoButton, anchor)
+    local scale = getControlScale()
+
+    if not keybindCaptureFrame then
+        local frame = CreateFrame("Frame", "RematchAutobattleKeybindCapture", UIParent)
+        frame:Hide()
+        frame:SetFrameStrata("DIALOG")
+        frame:SetClampedToScreen(true)
+        frame:EnableMouse(true)
+        frame:EnableKeyboard(false)
+        frame:EnableMouseWheel(true)
+        if frame.SetPropagateKeyboardInput then
+            frame:SetPropagateKeyboardInput(false)
+        end
+
+        frame.__rematchModernBorders = {}
+        local background = frame:CreateTexture(nil, "BACKGROUND")
+        background:SetAllPoints()
+        setTextureColor(background, colors.captureBackground)
+        frame.Background = background
+
+        createBorder(frame, "TOPLEFT", "TOPLEFT", 0, 0, "TOPRIGHT", "TOPRIGHT", 0, -1)
+        createBorder(frame, "BOTTOMLEFT", "BOTTOMLEFT", 0, 1, "BOTTOMRIGHT", "BOTTOMRIGHT", 0, 0)
+        createBorder(frame, "TOPLEFT", "TOPLEFT", 0, -1, "BOTTOMLEFT", "BOTTOMLEFT", 1, 1)
+        createBorder(frame, "TOPRIGHT", "TOPRIGHT", -1, -1, "BOTTOMRIGHT", "BOTTOMRIGHT", 0, 1)
+
+        local text = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        text:SetPoint("CENTER")
+        text:SetText("Set keybind.")
+        text:SetTextColor(0.96, 0.97, 1, 1)
+        local font, size, flags = text:GetFont()
+        if font and size then
+            frame.__rematchCaptureFont = {font, size, flags}
+        end
+        frame.Text = text
+
+        frame:SetScript("OnKeyDown", function(self, key)
+            local binding = buildBindingKey(key)
+            if binding == false then
+                closeKeybindCapture()
+            elseif binding then
+                saveAutobattleKey(self.autoButton, binding)
+            end
+        end)
+        frame:SetScript("OnMouseWheel", function(self, delta)
+            local binding = buildBindingKey(delta > 0 and "MOUSEWHEELUP" or "MOUSEWHEELDOWN")
+            if binding then
+                saveAutobattleKey(self.autoButton, binding)
+            end
+        end)
+        frame:SetScript("OnUpdate", function(self, elapsed)
+            self.__rematchPulseElapsed = (self.__rematchPulseElapsed or 0) + elapsed
+            self.__rematchDotElapsed = (self.__rematchDotElapsed or 0) + elapsed
+
+            local pulseDuration = 2.8
+            local pulse = (math.cos((self.__rematchPulseElapsed % pulseDuration)
+                * math.pi * 2 / pulseDuration) + 1) / 2
+            self:SetAlpha(0.56 + pulse * 0.44)
+
+            if self.__rematchDotElapsed >= 0.55 then
+                local steps = math.floor(self.__rematchDotElapsed / 0.55)
+                self.__rematchDotElapsed = self.__rematchDotElapsed - steps * 0.55
+                self.__rematchDotCount = ((self.__rematchDotCount - 1 + steps) % 3) + 1
+                self.Text:SetText("Set keybind" .. string.rep(".", self.__rematchDotCount))
+            end
+        end)
+        frame:SetScript("OnHide", function(self)
+            self:EnableKeyboard(false)
+            self:SetAlpha(1)
+            self.autoButton = nil
+            if keybindClickCatcher then
+                keybindClickCatcher:Hide()
+            end
+        end)
+
+        keybindCaptureFrame = frame
+    end
+
+    local catcher = ensureKeybindClickCatcher()
+    local unified = rematch.battleActionBar and rematch.battleActionBar.GetFrame
+        and rematch.battleActionBar:GetFrame()
+    catcher:SetFrameLevel(math.max(0, (unified and unified:GetFrameLevel() or anchor:GetFrameLevel()) - 1))
+    catcher:Show()
+
+    keybindCaptureFrame.autoButton = autoButton
+    keybindCaptureFrame.__rematchPulseElapsed = 0
+    keybindCaptureFrame.__rematchDotElapsed = 0
+    keybindCaptureFrame.__rematchDotCount = 1
+    keybindCaptureFrame:SetAlpha(1)
+    keybindCaptureFrame.Text:SetText("Set keybind.")
+    keybindCaptureFrame:SetSize(94 * scale, 26 * scale)
+    if keybindCaptureFrame.__rematchCaptureFont then
+        keybindCaptureFrame.Text:SetFont(
+            keybindCaptureFrame.__rematchCaptureFont[1],
+            keybindCaptureFrame.__rematchCaptureFont[2] * scale,
+            keybindCaptureFrame.__rematchCaptureFont[3]
+        )
+    end
+    keybindCaptureFrame:ClearAllPoints()
+    keybindCaptureFrame:SetPoint("BOTTOMLEFT", anchor, "TOPRIGHT", 5 * scale, 4 * scale)
+    keybindCaptureFrame:Show()
+    keybindCaptureFrame:EnableKeyboard(true)
+end
+
+local function ensureKeybindButton(autoButton)
+    if autoButton.__rematchKeybindButton then
+        return autoButton.__rematchKeybindButton
+    end
+
+    local button = CreateFrame("Button", nil, autoButton)
+    button:SetFrameLevel(autoButton:GetFrameLevel() + 2)
+    button:RegisterForClicks("LeftButtonUp")
+    button.__rematchModernBorders = {}
+
+    local plus = button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    plus:SetPoint("CENTER", 0, 1)
+    plus:SetText("+")
+    plus:SetTextColor(colors.keyButtonText[1], colors.keyButtonText[2], colors.keyButtonText[3], 1)
+    local font, size, flags = plus:GetFont()
+    if font and size then
+        button.__rematchPlusFont = {font, size, flags}
+    end
+    button.Text = plus
+
+    button:SetScript("OnEnter", function(self)
+        self.Text:SetTextColor(
+            colors.keyButtonTextHover[1],
+            colors.keyButtonTextHover[2],
+            colors.keyButtonTextHover[3],
+            colors.keyButtonTextHover[4]
+        )
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:SetText("Change Autobattle keybind")
+        GameTooltip:AddLine("Click, then press a key.", 0.85, 0.88, 0.92, true)
+        GameTooltip:Show()
+    end)
+    button:SetScript("OnLeave", function(self)
+        self.Text:SetTextColor(
+            colors.keyButtonText[1],
+            colors.keyButtonText[2],
+            colors.keyButtonText[3],
+            colors.keyButtonText[4]
+        )
+        GameTooltip:Hide()
+    end)
+    button:SetScript("OnClick", function(self)
+        GameTooltip:Hide()
+        showKeybindCapture(autoButton, self)
+    end)
+
+    autoButton:HookScript("OnHide", closeKeybindCapture)
+    autoButton.__rematchKeybindButton = button
+    return button
+end
+
+local function layoutKeybindButton(autoButton)
+    local scale = getControlScale()
+    local button = ensureKeybindButton(autoButton)
+
+    button:SetSize(KEY_BUTTON_SIZE * scale, KEY_BUTTON_SIZE * scale)
+    button:ClearAllPoints()
+    button:SetPoint("TOPRIGHT", autoButton, "TOPRIGHT", -2 * scale, -1 * scale)
+    if button.__rematchPlusFont then
+        button.Text:SetFont(
+            button.__rematchPlusFont[1],
+            button.__rematchPlusFont[2] * 2 * scale,
+            button.__rematchPlusFont[3]
+        )
+    end
+
+    if keybindCaptureFrame and keybindCaptureFrame:IsShown() and keybindCaptureFrame.autoButton == autoButton then
+        showKeybindCapture(autoButton, button)
     end
 end
 
@@ -283,30 +556,31 @@ local function reserveHotKey(autoButton)
 
     autoButton.__rematchKeyBackground:ClearAllPoints()
     autoButton.__rematchKeyBackground:SetPoint("TOPRIGHT", autoButton, "TOPRIGHT", -scale, -scale)
-    autoButton.__rematchKeyBackground:SetPoint("BOTTOMLEFT", autoButton, "BOTTOMRIGHT", -58 * scale, 3 * scale)
+    autoButton.__rematchKeyBackground:SetPoint("BOTTOMLEFT", autoButton, "BOTTOMRIGHT", -KEY_AREA_WIDTH * scale, 3 * scale)
 
     autoButton.__rematchKeyDivider:ClearAllPoints()
-    autoButton.__rematchKeyDivider:SetPoint("TOP", autoButton, "TOPRIGHT", -58 * scale, -4 * scale)
-    autoButton.__rematchKeyDivider:SetPoint("BOTTOM", autoButton, "BOTTOMRIGHT", -58 * scale, 4 * scale)
+    autoButton.__rematchKeyDivider:SetPoint("TOP", autoButton, "TOPRIGHT", -KEY_AREA_WIDTH * scale, -4 * scale)
+    autoButton.__rematchKeyDivider:SetPoint("BOTTOM", autoButton, "BOTTOMRIGHT", -KEY_AREA_WIDTH * scale, 4 * scale)
     autoButton.__rematchKeyDivider:SetWidth(math.max(1, scale))
 
     local label = autoButton:GetFontString()
     if label then
         label:ClearAllPoints()
         label:SetPoint("LEFT", autoButton, "LEFT", 10 * scale, 0)
-        label:SetPoint("RIGHT", autoButton, "RIGHT", -66 * scale, 0)
+        label:SetPoint("RIGHT", autoButton, "RIGHT", -(KEY_AREA_WIDTH + 8) * scale, 0)
         label:SetJustifyH("CENTER")
     end
 
     hotKey:ClearAllPoints()
-    hotKey:SetPoint("LEFT", autoButton, "RIGHT", -55 * scale, 0)
-    hotKey:SetPoint("RIGHT", autoButton, "RIGHT", -5 * scale, 0)
+    hotKey:SetPoint("LEFT", autoButton, "RIGHT", -(KEY_AREA_WIDTH - 3) * scale, 0)
+    hotKey:SetPoint("RIGHT", autoButton, "RIGHT", -(KEY_BUTTON_SIZE + 7) * scale, 0)
     hotKey:SetJustifyH("CENTER")
     hotKey:SetJustifyV("MIDDLE")
     hotKey:SetWordWrap(false)
     hotKey:SetTextColor(colors.keyText[1], colors.keyText[2], colors.keyText[3], colors.keyText[4])
 
     fitHotKey(autoButton)
+    layoutKeybindButton(autoButton)
 
     if not autoButton.__rematchHotKeyHooked and hooksecurefunc then
         autoButton.__rematchHotKeyHooked = true
@@ -360,28 +634,39 @@ local function installControlInteraction(button)
     button:EnableMouseWheel(true)
 
     button:HookScript("OnDragStart", function()
-        if not IsShiftKeyDown() or not controlFrame then
+        if not IsShiftKeyDown() then
             return
         end
 
         GameTooltip:Hide()
-        controlFrame.__rematchMoving = true
-        controlFrame:StartMoving()
+        if rematch.battleActionBar and rematch.battleActionBar.StartMoving
+            and rematch.battleActionBar:GetFrame() then
+            rematch.battleActionBar:StartMoving()
+        elseif controlFrame then
+            controlFrame.__rematchMoving = true
+            controlFrame:StartMoving()
+        end
     end)
 
     button:HookScript("OnDragStop", function()
-        if not controlFrame or not controlFrame.__rematchMoving then
-            return
+        if rematch.battleActionBar and rematch.battleActionBar.StopMoving
+            and rematch.battleActionBar:GetFrame() then
+            rematch.battleActionBar:StopMoving()
+        elseif controlFrame and controlFrame.__rematchMoving then
+            controlFrame:StopMovingOrSizing()
+            controlFrame.__rematchMoving = false
+            saveControlPosition()
         end
-
-        controlFrame:StopMovingOrSizing()
-        controlFrame.__rematchMoving = false
-        saveControlPosition()
     end)
 
     button:HookScript("OnMouseWheel", function(_, delta)
         if IsControlKeyDown() then
-            changeControlScale(delta)
+            if rematch.battleActionBar and rematch.battleActionBar.ChangeScale
+                and rematch.battleActionBar:GetFrame() then
+                rematch.battleActionBar:ChangeScale(delta)
+            else
+                module:ChangeScale(delta)
+            end
         end
     end)
 end
@@ -424,11 +709,30 @@ local function ensureControlFrame(passButton, turnTimer)
         controlFrame:SetFrameLevel(passButton:GetFrameLevel())
         controlFrame:SetClampedToScreen(true)
         controlFrame:SetMovable(true)
+
+        controlFrame.__rematchSeparators = {}
+        for index = 1, 2 do
+            local separator = controlFrame:CreateTexture(nil, "ARTWORK")
+            setTextureColor(separator, colors.separator)
+            controlFrame.__rematchSeparators[index] = separator
+        end
     end
 
     local scale = getControlScale()
     controlFrame:SetScale(1)
     controlFrame:SetSize(TOTAL_WIDTH * scale, BUTTON_HEIGHT * scale)
+
+    local separatorX = {BUTTON_WIDTHS.battleData, BUTTON_X.auto - 1}
+    for index, separator in ipairs(controlFrame.__rematchSeparators) do
+        separator:ClearAllPoints()
+        if _G.PixelUtil and PixelUtil.SetPoint then
+            PixelUtil.SetPoint(separator, "LEFT", controlFrame, "LEFT", separatorX[index] * scale, 0)
+        else
+            separator:SetPoint("LEFT", controlFrame, "LEFT", separatorX[index] * scale, 0)
+        end
+        setOnePixelWidth(separator)
+        separator:SetHeight(22 * scale)
+    end
 
     if not controlFrame.__rematchPositionInitialized then
         local savedX = rematch.settings.BattleControlsX
@@ -463,7 +767,15 @@ local function ensureControlFrame(passButton, turnTimer)
     return controlFrame
 end
 
-function module:Refresh()
+function module:GetFrame()
+    return controlFrame
+end
+
+function module:GetBaseSize()
+    return TOTAL_WIDTH, BUTTON_HEIGHT
+end
+
+function module:Refresh(skipActionBarRefresh)
     local turnTimer = _G.PetBattleFrame and PetBattleFrame.BottomFrame and PetBattleFrame.BottomFrame.TurnTimer
     local passButton = turnTimer and turnTimer.SkipButton
     local battleDataButton = _G.RematchBattleDataButton
@@ -487,6 +799,10 @@ function module:Refresh()
             end)
         end
         hidePetBattleScriptsArt()
+    end
+
+    if not skipActionBarRefresh and rematch.battleActionBar and rematch.battleActionBar.Refresh then
+        rematch.battleActionBar:Refresh()
     end
 end
 

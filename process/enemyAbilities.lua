@@ -9,6 +9,7 @@ rematch.enemyAbilityBar = rematch.enemyAbilityBar or {}
 local module = rematch.enemyAbilityBar
 
 local ENEMY = Enum.BattlePetOwner.Enemy
+local ALLY = Enum.BattlePetOwner.Ally
 local abilityButtons = {}
 local casts = {}
 local currentRound = 0
@@ -403,6 +404,19 @@ updateBar = function()
             button.Icon:SetTexture(icon)
             button.Icon:SetDesaturated(remaining > 0)
 
+            if rematch.abilityEffectiveness then
+                rematch.abilityEffectiveness:Update(
+                    button,
+                    ENEMY,
+                    enemyIndex,
+                    slot,
+                    ALLY,
+                    C_PetBattles.GetActivePet(ALLY),
+                    button.Icon,
+                    button.IconMask
+                )
+            end
+
             if remaining > 0 then
                 button.CooldownText:SetText(remaining)
                 button.CooldownText:Show()
@@ -422,6 +436,9 @@ updateBar = function()
             button:Show()
         else
             button.abilityID = nil
+            if rematch.abilityEffectiveness then
+                rematch.abilityEffectiveness:Set(button, nil, true, button.Icon, button.IconMask)
+            end
             button:Hide()
         end
     end

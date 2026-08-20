@@ -2,30 +2,41 @@ local _, rematch = ...
 
 -- A compact replacement for Blizzard's wooden pet-battle bottom bar. The
 -- original action buttons keep their scripts and state; only their parent,
--- layout and artwork are changed.
+-- layout and artwork are changed. Battle Data, Pass and Autobattle are embedded
+-- as the top row so one Shift-drag/Ctrl-wheel interaction controls everything.
 
 rematch.battleActionBar = rematch.battleActionBar or {}
 local module = rematch.battleActionBar
 
 local ICON_SIZE = 54
 local ICON_SPACING = 9
-local BAR_PADDING = 10
-local BAR_HEIGHT = ICON_SIZE + BAR_PADDING * 2
+local OUTER_PADDING = 8
+local VERTICAL_PADDING = 4
+-- Three pixels closer to the abilities than the previous layout.
+local ROW_GAP = 4
+local XP_BAR_HEIGHT = 8
+local XP_BAR_GAP = 2
+local ABILITY_DIVIDER_OFFSET = 5
 local MASK_TEXTURE = "Interface\\AddOns\\Rematch\\textures\\enemyAbilityMask"
+local MIN_SCALE_PERCENT = 50
+local MAX_SCALE_PERCENT = 200
 
 local bar
 local actionButtons = {}
 local layingOut = false
 local layoutScheduled = false
 local actionLayoutHooked = false
+local xpUpdateHooked = false
 local layoutActionBar
 local scheduleLayout
 
 local colors = {
-    background = {0.02, 0.03, 0.045, 0.94},
-    border = {0.22, 0.28, 0.33, 1},
-    accent = {0.95, 0.58, 0.08, 1},
+    background = {0.028, 0.04, 0.055, 0.97},
+    border = {0, 0, 0, 1},
     hover = {1, 1, 1, 0.14},
+    divider = {0.18, 0.78, 1, 0.9},
+    xp = {0.08, 0.72, 0.96, 0.96},
+    xpTrack = {0.012, 0.025, 0.038, 0.96},
 }
 
 local function setColor(texture, color)
@@ -52,17 +63,29 @@ local function hideFrameTextures(frame)
 end
 
 local function hideOldBottomBar(bottomFrame)
-    if bottomFrame.__rematchModernBottomHidden then
-        return
-    end
-    bottomFrame.__rematchModernBottomHidden = true
-
     hideFrameTextures(bottomFrame)
     hideFrameTextures(bottomFrame.FlowFrame)
     hideFrameTextures(bottomFrame.ArtFrame)
 
     if bottomFrame.Delimiter then
         bottomFrame.Delimiter:Hide()
+    end
+
+    -- Keep Blizzard's status-bar state alive so its value and visibility can
+    -- drive the replacement, but make the original artwork fully invisible.
+    if bottomFrame.xpBar then
+        bottomFrame.xpBar:SetAlpha(0)
+        if bottomFrame.xpBar.EnableMouse then
+            bottomFrame.xpBar:EnableMouse(false)
+        end
+    end
+
+    -- This is the isolated wooden plaque left above the modern bar in PvE.
+    -- Alpha remains zero even when Blizzard calls SetShown(true) every battle.
+    local turnTimer = bottomFrame.TurnTimer
+    if turnTimer and turnTimer.ArtFrame2 then
+        hideTexture(turnTimer.ArtFrame2)
+        turnTimer.ArtFrame2:Hide()
     end
 
     local microMenu = bottomFrame.MicroButtonFrame
@@ -79,11 +102,54 @@ local function hideOldBottomBar(bottomFrame)
     end
 end
 
-local function createBarBorder(frame, point1, relativePoint1, x1, y1, point2, relativePoint2, x2, y2)
+local function createBorder(frame, point1, relativePoint1, x1, y1, point2, relativePoint2, x2, y2)
     local texture = frame:CreateTexture(nil, "BORDER")
     texture:SetPoint(point1, frame, relativePoint1, x1, y1)
     texture:SetPoint(point2, frame, relativePoint2, x2, y2)
     setColor(texture, colors.border)
+end
+
+local function getScalePercent()
+    local percent = math.floor((tonumber(rematch.settings and rematch.settings.BattleControlsScale) or 100) + 0.5)
+    return math.max(MIN_SCALE_PERCENT, math.min(MAX_SCALE_PERCENT, percent))
+end
+
+local function getScale()
+    return getScalePercent() / 100
+end
+
+local function getCenterOffset(frame)
+    local frameX, frameY = frame:GetCenter()
+    local parentX, parentY = UIParent:GetCenter()
+    if not frameX or not frameY or not parentX or not parentY then
+        return
+    end
+
+    local frameScale = frame.GetEffectiveScale and frame:GetEffectiveScale() or 1
+    local parentScale = UIParent.GetEffectiveScale and UIParent:GetEffectiveScale() or 1
+    return (frameX * frameScale - parentX * parentScale) / parentScale,
+        (frameY * frameScale - parentY * parentScale) / parentScale
+end
+
+local function savePosition()
+    if not bar or not rematch.settings then
+        return
+    end
+
+    local x, y = getCenterOffset(bar)
+    if not x or not y then
+        return
+    end
+
+    x = math.floor(x + 0.5)
+    y = math.floor(y + 0.5)
+    rematch.settings.BattleControlsX = x
+    rematch.settings.BattleControlsY = y
+    bar.__rematchCenterX = x
+    bar.__rematchCenterY = y
+
+    bar:ClearAllPoints()
+    bar:SetPoint("CENTER", UIParent, "CENTER", x, y)
 end
 
 local function ensureBar(bottomFrame)
@@ -91,35 +157,81 @@ local function ensureBar(bottomFrame)
         return bar
     end
 
-    bar = CreateFrame("Frame", "RematchPetBattleActionBar", _G.PetBattleFrame or UIParent)
-    bar:SetPoint("BOTTOM", UIParent, "BOTTOM", 0, 14)
-    bar:SetSize(BAR_PADDING * 2, BAR_HEIGHT)
+    bar = CreateFrame("Frame", "RematchPetBattleActionBar", UIParent)
+    bar:SetSize(OUTER_PADDING * 2, OUTER_PADDING * 2)
+    bar:SetScale(1)
     bar:SetFrameStrata("HIGH")
     bar:SetFrameLevel((bottomFrame.GetFrameLevel and bottomFrame:GetFrameLevel() or 1) + 10)
-
-    local shadow = bar:CreateTexture(nil, "BACKGROUND", nil, -1)
-    shadow:SetPoint("TOPLEFT", bar, "TOPLEFT", -4, 4)
-    shadow:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", 4, -4)
-    shadow:SetColorTexture(0, 0, 0, 0.45)
+    bar:SetClampedToScreen(true)
+    bar:SetMovable(true)
 
     local background = bar:CreateTexture(nil, "BACKGROUND")
     background:SetAllPoints()
     setColor(background, colors.background)
+    bar.__rematchBackground = background
 
-    createBarBorder(bar, "TOPLEFT", "TOPLEFT", 0, 0, "TOPRIGHT", "TOPRIGHT", 0, -1)
-    createBarBorder(bar, "BOTTOMLEFT", "BOTTOMLEFT", 0, 1, "BOTTOMRIGHT", "BOTTOMRIGHT", 0, 0)
-    createBarBorder(bar, "TOPLEFT", "TOPLEFT", 0, -1, "BOTTOMLEFT", "BOTTOMLEFT", 1, 1)
-    createBarBorder(bar, "TOPRIGHT", "TOPRIGHT", -1, -1, "BOTTOMRIGHT", "BOTTOMRIGHT", 0, 1)
+    -- One physical pixel on each edge, with no decorative chrome.
+    createBorder(bar, "TOPLEFT", "TOPLEFT", 0, 0, "TOPRIGHT", "TOPRIGHT", 0, -1)
+    createBorder(bar, "BOTTOMLEFT", "BOTTOMLEFT", 0, 1, "BOTTOMRIGHT", "BOTTOMRIGHT", 0, 0)
+    createBorder(bar, "TOPLEFT", "TOPLEFT", 0, -1, "BOTTOMLEFT", "BOTTOMLEFT", 1, 1)
+    createBorder(bar, "TOPRIGHT", "TOPRIGHT", -1, -1, "BOTTOMRIGHT", "BOTTOMRIGHT", 0, 1)
 
-    local accent = bar:CreateTexture(nil, "ARTWORK")
-    accent:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", 1, 1)
-    accent:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", -1, 1)
-    accent:SetHeight(2)
-    setColor(accent, colors.accent)
+    local divider = bar:CreateTexture(nil, "ARTWORK")
+    setColor(divider, colors.divider)
+    divider:SetHeight(1)
+    bar.AbilityDivider = divider
+
+    local xpBar = CreateFrame("StatusBar", "RematchPetBattleXPBar", bar)
+    xpBar:SetStatusBarTexture("Interface\\Buttons\\WHITE8X8")
+    xpBar:SetStatusBarColor(colors.xp[1], colors.xp[2], colors.xp[3], colors.xp[4])
+    local xpTrack = xpBar:CreateTexture(nil, "BACKGROUND")
+    xpTrack:SetAllPoints()
+    setColor(xpTrack, colors.xpTrack)
+    xpBar.Track = xpTrack
+
+    local xpText = xpBar:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    xpText:SetPoint("CENTER", xpBar, "CENTER", 0, 0)
+    xpText:SetTextColor(0.94, 0.98, 1, 1)
+    xpText:SetShadowColor(0, 0, 0, 1)
+    xpText:SetShadowOffset(1, -1)
+    local font, _, flags = xpText:GetFont()
+    if font then
+        xpText:SetFont(font, 11, "OUTLINE")
+        xpBar.__rematchXPFont = {font, 11, flags}
+    end
+    xpBar.Text = xpText
+    bar.XPBar = xpBar
 
     return bar
 end
 
+local function updateXPBar(bottomFrame)
+    if not bar or not bar.XPBar then
+        return
+    end
+
+    local source = bottomFrame and bottomFrame.xpBar
+    if not source or not source.GetMinMaxValues or not source.GetValue then
+        bar.XPBar.Text:SetText("")
+        bar.XPBar:Hide()
+        return
+    end
+
+    local minimum, maximum = source:GetMinMaxValues()
+    local value = source:GetValue()
+    minimum = tonumber(minimum) or 0
+    maximum = tonumber(maximum) or 0
+    value = tonumber(value) or minimum
+
+    bar.XPBar:SetMinMaxValues(minimum, maximum)
+    bar.XPBar:SetValue(value)
+    bar.XPBar.Text:SetText(string.format(
+        "%d/%d",
+        math.floor(value + 0.5),
+        math.floor(maximum + 0.5)
+    ))
+    bar.XPBar:SetShown(source:IsShown() and maximum > minimum)
+end
 
 local function getButtonIcon(button)
     return button and (button.Icon or button.icon)
@@ -145,8 +257,61 @@ local function hideButtonChrome(button)
     hideTexture(button.Border)
     hideTexture(button.Framing)
     hideTexture(button.SelectedHighlight)
+    hideTexture(button.BetterIcon)
     hideTexture(button.pushed)
     hideTexture(button.hover)
+end
+
+local function beginMove()
+    if not IsShiftKeyDown() or not bar then
+        return
+    end
+
+    GameTooltip:Hide()
+    bar.__rematchMoving = true
+    bar:StartMoving()
+end
+
+local function endMove()
+    if not bar or not bar.__rematchMoving then
+        return
+    end
+
+    bar:StopMovingOrSizing()
+    bar.__rematchMoving = false
+    savePosition()
+end
+
+function module:ChangeScale(delta)
+    if delta == 0 or not rematch.settings then
+        return
+    end
+
+    local percent = getScalePercent()
+    percent = math.max(MIN_SCALE_PERCENT, math.min(MAX_SCALE_PERCENT, percent + (delta > 0 and 1 or -1)))
+    rematch.settings.BattleControlsScale = percent
+
+    if rematch.battleControls and rematch.battleControls.Refresh then
+        rematch.battleControls:Refresh(true)
+    end
+    self:Refresh()
+end
+
+local function installInteraction(button)
+    if not button or button.__rematchUnifiedInteraction then
+        return
+    end
+    button.__rematchUnifiedInteraction = true
+
+    button:RegisterForDrag("LeftButton")
+    button:EnableMouseWheel(true)
+    button:HookScript("OnDragStart", beginMove)
+    button:HookScript("OnDragStop", endMove)
+    button:HookScript("OnMouseWheel", function(_, delta)
+        if IsControlKeyDown() then
+            module:ChangeScale(delta)
+        end
+    end)
 end
 
 local function styleActionButton(button)
@@ -154,10 +319,22 @@ local function styleActionButton(button)
         return
     end
 
-    button:SetSize(ICON_SIZE, ICON_SIZE)
+    local scale = getScale()
+    button:SetSize(ICON_SIZE * scale, ICON_SIZE * scale)
     hideButtonChrome(button)
+    installInteraction(button)
 
     if button.__rematchModernActionButton then
+        local hotKey = button.HotKey
+        if hotKey and button.__rematchHotKeyFont then
+            hotKey:ClearAllPoints()
+            hotKey:SetPoint("TOPRIGHT", button, "TOPRIGHT", -3 * scale, -3 * scale)
+            hotKey:SetFont(
+                button.__rematchHotKeyFont[1],
+                button.__rematchHotKeyFont[2] * scale,
+                button.__rematchHotKeyFont[3]
+            )
+        end
         return
     end
     button.__rematchModernActionButton = true
@@ -184,8 +361,13 @@ local function styleActionButton(button)
     local hotKey = button.HotKey
     if hotKey then
         hotKey:ClearAllPoints()
-        hotKey:SetPoint("TOPRIGHT", button, "TOPRIGHT", -3, -3)
+        hotKey:SetPoint("TOPRIGHT", button, "TOPRIGHT", -3 * scale, -3 * scale)
         hotKey:SetFontObject(_G.NumberFontNormalSmallGray or _G.GameFontNormalSmall)
+        local font, size, flags = hotKey:GetFont()
+        if font and size then
+            button.__rematchHotKeyFont = {font, size, flags}
+            hotKey:SetFont(font, size * scale, flags)
+        end
         hotKey:SetTextColor(0.9, 0.93, 0.96, 1)
         hotKey:SetShadowColor(0, 0, 0, 1)
         hotKey:SetShadowOffset(1, -1)
@@ -228,44 +410,155 @@ local function collectActionButtons(bottomFrame)
 end
 
 
+local function updateEffectiveness(bottomFrame)
+    local effect = rematch.abilityEffectiveness
+    if not effect or not C_PetBattles or not bottomFrame.abilityButtons then
+        return
+    end
+
+    local ALLY = Enum.BattlePetOwner.Ally
+    local ENEMY = Enum.BattlePetOwner.Enemy
+    local allyIndex = C_PetBattles.GetActivePet(ALLY)
+    local enemyIndex = C_PetBattles.GetActivePet(ENEMY)
+
+    for slot = 1, 3 do
+        local button = bottomFrame.abilityButtons[slot]
+        if button then
+            effect:Update(
+                button,
+                ALLY,
+                allyIndex,
+                slot,
+                ENEMY,
+                enemyIndex,
+                getButtonIcon(button),
+                button.__rematchActionMask
+            )
+        end
+    end
+end
+
 layoutActionBar = function()
     if not bar then
         return
     end
 
     layoutScheduled = false
+
+    if C_PetBattles and C_PetBattles.IsInBattle and not C_PetBattles.IsInBattle() then
+        bar:Hide()
+        return
+    end
+
     layingOut = true
 
+    local scale = getScale()
     local visibleButtons = {}
     for _, button in ipairs(actionButtons) do
         styleActionButton(button)
         button.__rematchActionManaged = true
         button:SetParent(bar)
         button:SetScale(1)
-        button:SetFrameLevel(bar:GetFrameLevel() + 1)
+        button:SetFrameLevel(bar:GetFrameLevel() + 2)
         button:ClearAllPoints()
         if button:IsShown() then
             visibleButtons[#visibleButtons + 1] = button
         end
     end
 
+    local controls = rematch.battleControls and rematch.battleControls.GetFrame
+        and rematch.battleControls:GetFrame()
+    local controlWidth, controlHeight = 0, 0
+    if controls then
+        controls:SetParent(bar)
+        controls:SetScale(1)
+        controls:SetFrameLevel(bar:GetFrameLevel() + 1)
+        controlWidth = controls:GetWidth()
+        controlHeight = controls:GetHeight()
+    end
+
     local count = #visibleButtons
-    if count == 0 then
+    if count == 0 and not controls then
         bar:Hide()
         layingOut = false
         return
     end
 
-    local width = BAR_PADDING * 2 + count * ICON_SIZE + (count - 1) * ICON_SPACING
-    bar:SetSize(width, BAR_HEIGHT)
+    local actionWidth = count > 0 and (count * ICON_SIZE + (count - 1) * ICON_SPACING) * scale or 0
+    local actionHeight = count > 0 and ICON_SIZE * scale or 0
+    local gap = count > 0 and controls and ROW_GAP * scale or 0
+    local horizontalPadding = OUTER_PADDING * scale
+    local verticalPadding = VERTICAL_PADDING * scale
+    local xpReserve = count > 0 and (XP_BAR_HEIGHT + XP_BAR_GAP) * scale or 0
+    local actionBottom = verticalPadding + xpReserve
+    local width = math.max(actionWidth, controlWidth) + horizontalPadding * 2
+    local height = actionHeight + controlHeight + gap + verticalPadding + actionBottom
 
-    for index, button in ipairs(visibleButtons) do
-        local x = BAR_PADDING + (index - 1) * (ICON_SIZE + ICON_SPACING)
-        button:SetPoint("LEFT", bar, "LEFT", x, 0)
+    bar:SetScale(1)
+    bar:SetSize(width, height)
+
+    if controls then
+        controls:ClearAllPoints()
+        controls:SetPoint("TOP", bar, "TOP", 0, -verticalPadding)
     end
 
+    if count > 0 then
+        local startX = (width - actionWidth) / 2
+        for index, button in ipairs(visibleButtons) do
+            local x = startX + (index - 1) * (ICON_SIZE + ICON_SPACING) * scale
+            button:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", x, actionBottom)
+        end
+    end
+
+
+    bar.AbilityDivider:ClearAllPoints()
+    bar.AbilityDivider:SetPoint(
+        "BOTTOMLEFT",
+        bar,
+        "BOTTOMLEFT",
+        1,
+        actionBottom + actionHeight + ABILITY_DIVIDER_OFFSET * scale
+    )
+    bar.AbilityDivider:SetPoint(
+        "BOTTOMRIGHT",
+        bar,
+        "BOTTOMRIGHT",
+        -1,
+        actionBottom + actionHeight + ABILITY_DIVIDER_OFFSET * scale
+    )
+    bar.AbilityDivider:SetHeight(1)
+    bar.AbilityDivider:SetShown(count > 0)
+
+    bar.XPBar:ClearAllPoints()
+    bar.XPBar:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", 1, 1)
+    bar.XPBar:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", -1, 1)
+    bar.XPBar:SetHeight(XP_BAR_HEIGHT * scale)
+    if bar.XPBar.__rematchXPFont then
+        bar.XPBar.Text:SetFont(
+            bar.XPBar.__rematchXPFont[1],
+            bar.XPBar.__rematchXPFont[2] * scale,
+            "OUTLINE"
+        )
+    end
+
+    if not bar.__rematchPositionInitialized then
+        local savedX = rematch.settings and rematch.settings.BattleControlsX
+        local savedY = rematch.settings and rematch.settings.BattleControlsY
+        bar.__rematchCenterX = type(savedX) == "number" and savedX or 0
+        bar.__rematchCenterY = type(savedY) == "number" and savedY or (14 + height / 2)
+        bar.__rematchPositionInitialized = true
+    end
+
+    bar:ClearAllPoints()
+    bar:SetPoint("CENTER", UIParent, "CENTER", bar.__rematchCenterX, bar.__rematchCenterY)
     bar:Show()
     layingOut = false
+
+    local bottomFrame = _G.PetBattleFrame and PetBattleFrame.BottomFrame
+    if bottomFrame then
+        updateEffectiveness(bottomFrame)
+        updateXPBar(bottomFrame)
+    end
 end
 
 scheduleLayout = function()
@@ -281,6 +574,18 @@ scheduleLayout = function()
     end
 end
 
+function module:GetFrame()
+    return bar
+end
+
+function module:StartMoving()
+    beginMove()
+end
+
+function module:StopMoving()
+    endMove()
+end
+
 function module:Refresh()
     local bottomFrame = _G.PetBattleFrame and PetBattleFrame.BottomFrame
     if not bottomFrame then
@@ -289,6 +594,19 @@ function module:Refresh()
 
     hideOldBottomBar(bottomFrame)
     ensureBar(bottomFrame)
+    if not bar.__rematchUnifiedInteraction then
+        bar.__rematchUnifiedInteraction = true
+        bar:EnableMouse(true)
+        bar:EnableMouseWheel(true)
+        bar:RegisterForDrag("LeftButton")
+        bar:SetScript("OnDragStart", beginMove)
+        bar:SetScript("OnDragStop", endMove)
+        bar:SetScript("OnMouseWheel", function(_, delta)
+            if IsControlKeyDown() then
+                module:ChangeScale(delta)
+            end
+        end)
+    end
     actionButtons = collectActionButtons(bottomFrame)
 
     for _, button in ipairs(actionButtons) do
@@ -300,6 +618,14 @@ function module:Refresh()
         hooksecurefunc("PetBattleFrame_UpdateActionBarLayout", scheduleLayout)
     end
 
+
+    if not xpUpdateHooked and type(_G.PetBattleFrame_UpdateXpBar) == "function" and hooksecurefunc then
+        xpUpdateHooked = true
+        hooksecurefunc("PetBattleFrame_UpdateXpBar", function(petBattleFrame)
+            updateXPBar(petBattleFrame and petBattleFrame.BottomFrame or bottomFrame)
+        end)
+    end
+
     scheduleLayout()
 end
 
@@ -309,6 +635,7 @@ eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:RegisterEvent("PET_BATTLE_OPENING_START")
 eventFrame:RegisterEvent("PET_BATTLE_PET_CHANGED")
 eventFrame:RegisterEvent("PET_BATTLE_PET_ROUND_PLAYBACK_COMPLETE")
+eventFrame:RegisterEvent("PET_BATTLE_CLOSE")
 eventFrame:SetScript("OnEvent", function()
     if C_Timer and C_Timer.After then
         C_Timer.After(0, function()

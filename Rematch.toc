@@ -127,6 +127,7 @@ process\rebuild.lua
 process\send.lua
 process\petHerder.lua
 process\badges.lua
+process\abilityEffectiveness.lua
 process\enemyAbilities.lua
 process\battleData.lua
 process\battleControls.lua
