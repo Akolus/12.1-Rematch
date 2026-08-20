@@ -25,6 +25,7 @@ rematch.targetInfo = {}
 
 local targetIndexes = {} -- indexed by npcID, the index into targetData for that npcID
 local speciesTargetLookup = {} -- WoW 12.1 fallback: first enemy battle-pet speciesID -> unique notable npcID
+local targetNameLookup = {} -- WoW 12.1 fallback: readable unit name -> unique notable npcID
 local targetNameCache = {} -- indexed by npcID, the localized name of the npcID
 local targetsToCache = {} -- indexed by npcID, the number of cache attempts for this npcID
 local reusedPets = {} -- reused table of pets to reduce garbage creation
@@ -43,6 +44,19 @@ rematch.targetInfo.currentTarget = nil -- the current npcID targeted (or nil if 
 rematch.events:Register(rematch.targetInfo,"PLAYER_LOGIN",function(self)
     for index,info in ipairs(rematch.targetData.notableTargets) do
         targetIndexes[info[2]] = index
+
+        -- Some dungeon opponents are gossip-enabled objects rather than battle-pet
+        -- units, so UnitBattlePetSpeciesID() returns nil for them. Their unit name
+        -- can still be readable even when their GUID is secret. Build a second
+        -- lookup and reject duplicate names rather than risk loading a wrong team.
+        local targetName = rematch.targetData.targetNames and rematch.targetData.targetNames[info[2]]
+        if type(targetName)=="string" then
+            if targetNameLookup[targetName] and targetNameLookup[targetName]~=info[2] then
+                targetNameLookup[targetName] = false
+            elseif targetNameLookup[targetName]~=false then
+                targetNameLookup[targetName] = info[2]
+            end
+        end
 
         -- WoW 12.1 compatibility:
         -- In restricted instances UnitGUID/unit names may be secret, but battle-pet
@@ -117,6 +131,16 @@ end
 -- before anything else hears the target has changed
 rematch.events:Register(rematch.targetInfo,"PLAYER_TARGET_CHANGED",rematch.targetInfo.PLAYER_TARGET_CHANGED)
 
+-- Gossip-enabled dungeon opponents can finish exposing their unit information
+-- after PLAYER_TARGET_CHANGED. Re-evaluate once the gossip frame is available.
+function rematch.targetInfo:GOSSIP_SHOW()
+    local npcID = rematch.targetInfo:GetUnitNpcID("target")
+    if npcID and npcID~=self.currentTarget then
+        self:PLAYER_TARGET_CHANGED()
+    end
+end
+rematch.events:Register(rematch.targetInfo,"GOSSIP_SHOW",rematch.targetInfo.GOSSIP_SHOW)
+
 
 -- sometimes this addon "targets" something via loadedTargetPanel:SetTarget(npcID); these should show in history also
 function rematch.targetInfo:SetRecentTarget(npcID)
@@ -162,6 +186,23 @@ function rematch.targetInfo:GetUnitNpcID(unit)
     local speciesID = UnitBattlePetSpeciesID(unit)
     if speciesID and not issecretvalue(speciesID) then
         local npcID = speciesTargetLookup[speciesID]
+        if type(npcID)=="number" then
+            return rematch.targetData.redirects[npcID] or npcID
+        end
+    end
+
+    -- Gossip-enabled targets such as Gnomeregan's Door Control Console are
+    -- interaction objects, not battle-pet units, and therefore have no species
+    -- ID. Fall back to a public unit name only when it maps to one unique notable
+    -- target. Explicitly exclude players to avoid matching an NPC-like character
+    -- name.
+    local isPlayer = UnitIsPlayer(unit)
+    if not issecretvalue(isPlayer) and isPlayer then
+        return
+    end
+    local unitName = UnitName(unit)
+    if not issecretvalue(unitName) and type(unitName)=="string" then
+        local npcID = targetNameLookup[unitName]
         if type(npcID)=="number" then
             return rematch.targetData.redirects[npcID] or npcID
         end
@@ -394,4 +435,3 @@ function rematch.targetInfo:GetLocations(npcID)
         return UNKNOWN
     end
 end
-
