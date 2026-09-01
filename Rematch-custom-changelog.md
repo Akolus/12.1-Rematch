@@ -76,7 +76,8 @@ This update expands pet searching, improves saved-team loading in Battle Pet dun
 
 #### Autobattle keybinding control
 
-- Added a large borderless `+` in the top-right of the Autobattle key area.
+- Removed the dark keybind sub-cell and its divider from the Autobattle control.
+- The current binding and `+` now share a separate transparent keybind setter beside Autobattle.
 - Clicking `+` opens a compact key-capture prompt.
 - The prompt slowly dims and brightens while cycling through `Set keybind.`, `Set keybind..`, and `Set keybind...`.
 - The next valid key, modifier combination, or mouse-wheel direction is saved through Pet Battle Scripts.
@@ -85,10 +86,21 @@ This update expands pet searching, improves saved-team loading in Battle Pet dun
 - Left- or right-clicking outside the battle UI closes the prompt.
 - Existing secondary Autobattle bindings remain visible and are not overwritten.
 - Keybind text automatically shrinks when needed to prevent overlap.
+- Right-clicking anywhere on the Autobattle control, including its `+` keybind area, toggles continuous script execution.
+- While active, Autobattle runs the next scripted move whenever the control becomes enabled for the player's turn and continues until the battle ends or it is toggled off.
+- Continuous execution now follows the pet-battle round-playback-complete event directly, with button enable/disable callbacks retained as a fallback for server-specific event behavior.
+- The label displays `ON` while continuous execution is active and resets automatically when the battle ends.
+- Normal single-step left-click execution and left-clicking `+` to edit the keybind are unchanged.
 
 ### Changed
 
 - Battle Data, Pass, and Autobattle now form one continuous row instead of three separately bordered cells.
+- Hovering Battle Data, Pass, or Autobattle now turns only its label yellow without adding a background glow.
+- Battle Data, Pass, and Autobattle labels now use a 14 px font at 100% interface scale.
+- Removed the round pet portrait from the upper-left corner of the journal and reclaimed its toolbar space.
+- Tightened the main panel's outer shadow by 2 px so it no longer extends as far beyond the journal edges.
+- Hid the underlying Blizzard Collections Journal backdrop while Rematch is active, removing the remaining dark area outside the addon window while preserving and restoring it for the other journal tabs.
+- Shifted Rematch 9 px farther left in journal mode and made its journal layout 15 px taller, preserving the corrected top alignment while extending the bottom edge another 5 px downward over Blizzard's window.
 - The controls are separated by two light-blue vertical lines.
 - Both separators use pixel-aligned sizing so they remain exactly one physical pixel wide at different UI scales.
 - The control row was moved closer to the player abilities for a more compact layout.

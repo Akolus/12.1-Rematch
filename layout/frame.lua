@@ -7,6 +7,7 @@ rematch.frame = RematchFrame
 local modules = {} -- ordered list of modules (should be table/frames with Configure, Resize and/or Update functions)
 local showAfterCombat = false -- flag that becomes true when rematch was hidden due to combat and should return after combat
 local chromeModules = {"titlebar","toolbar","bottombar","panelTabs","teamTabs"} -- for looping over these modules
+local JOURNAL_EXTRA_HEIGHT = 15
 
 -- when configure/resize/update happens, these fire after Rematch has finished its own configure/resize/update
 local frameFuncEvents = {
@@ -46,6 +47,19 @@ rematch.events:Register(rematch.frame,"PLAYER_LOGIN",function(self)
     rematch.events:Register(self,"REMATCH_PETS_LOADED",self.REMATCH_PETS_LOADED)
     rematch.events:Register(self,"PLAYER_LOGOUT",self.PLAYER_LOGOUT)
     self.CloseButton:Hide() -- using titlebar's close button
+
+    -- The default panel corner atlases include a dark outer shadow. Pull the
+    -- main Rematch frame's corners inward slightly so that shadow no longer
+    -- protrudes beyond the journal at the top, bottom and sides. This is kept
+    -- local to the main window so cards and dialogs retain their normal trim.
+    self.TopLeft:ClearAllPoints()
+    self.TopLeft:SetPoint("TOPLEFT",self,"TOPLEFT",-10,14)
+    self.TopRight:ClearAllPoints()
+    self.TopRight:SetPoint("TOPRIGHT",self,"TOPRIGHT",1,14)
+    self.BottomLeft:ClearAllPoints()
+    self.BottomLeft:SetPoint("BOTTOMLEFT",self,"BOTTOMLEFT",-10,-1)
+    self.BottomRight:ClearAllPoints()
+    self.BottomRight:SetPoint("BOTTOMRIGHT",self,"BOTTOMRIGHT",1,-1)
 end)
 
 --[[ script handlers ]]
@@ -252,12 +266,12 @@ end
 
 
 -- anchors panels to the canvas for the given layout
-local function applyLayout(layoutName,def)
+local function applyLayout(layoutName,def,extraHeight)
     -- hide all known panels that aren't used in this layout definition
     rematch.layout:HidePanels(def)
 
     -- set size of canvas from layout definition
-    rematch.frame.Canvas:SetSize(def.width,def.height)
+    rematch.frame.Canvas:SetSize(def.width,def.height+(extraHeight or 0))
 
     -- anchor and show all panels that are in this layout definition
     for _,info in ipairs(def.panels) do
@@ -317,12 +331,13 @@ function rematch.frame:Configure(newLayoutName)
 
         -- handle the toolbar and bottombar
         local chromeHeight,chromeYOffset = anchorChrome(layoutName,def)
+        local journalExtraHeight = rematch.journal:IsActive() and JOURNAL_EXTRA_HEIGHT or 0
         -- size the parent frame based on the canvas size of the layout
-        rematch.frame:SetSize(def.width + C.FRAME_LEFT_MARGIN + C.FRAME_RIGHT_MARGIN, def.height + C.FRAME_TOP_MARGIN + C.FRAME_BOTTOM_MARGIN + chromeHeight)
+        rematch.frame:SetSize(def.width + C.FRAME_LEFT_MARGIN + C.FRAME_RIGHT_MARGIN, def.height + journalExtraHeight + C.FRAME_TOP_MARGIN + C.FRAME_BOTTOM_MARGIN + chromeHeight)
         -- position canvas; for now ignoring toolbar and bottombuttons
         rematch.frame.Canvas:SetPoint("BOTTOMLEFT",rematch.frame,"BOTTOMLEFT",C.FRAME_LEFT_MARGIN,3+chromeYOffset)
         -- apply the layout (position frames)
-        applyLayout(layoutName,def)
+        applyLayout(layoutName,def,journalExtraHeight)
         -- run config/resize/update for all chrome and used panels
         runFrameFuncs("Configure",def)
         runFrameFuncs("Resize",def)
@@ -330,7 +345,7 @@ function rematch.frame:Configure(newLayoutName)
         -- anchor frame depending on saved
         if rematch.journal:IsActive() then
             rematch.frame:ClearAllPoints()
-            rematch.frame:SetPoint("BOTTOMLEFT",CollectionsJournal,"BOTTOMLEFT",-1,0)
+            rematch.frame:SetPoint("BOTTOMLEFT",CollectionsJournal,"BOTTOMLEFT",-10,-5)
         else
             rematch.frame:RestorePosition()
             rematch.frame:SetFrameStrata(settings.LowerStrata and "LOW" or "MEDIUM")

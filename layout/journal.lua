@@ -5,6 +5,53 @@ local settings = rematch.settings
 rematch.journal = {}
 
 local enteringCombat = false
+local hiddenCollectionsBackdrop
+
+-- Rematch replaces the Pet Journal's visible panel, but CollectionsJournal
+-- remains its parent so Blizzard's journal tabs continue to work. Hide only
+-- the parent's backdrop/chrome while Rematch is active; otherwise its dark
+-- backing remains visible beyond Rematch along the top, bottom and left edge.
+local function setCollectionsBackdropHidden(hidden)
+    if not CollectionsJournal then
+        return
+    end
+
+    if hidden then
+        if hiddenCollectionsBackdrop then
+            return
+        end
+
+        local state = {objects={},seen={}}
+        local function hideObject(object)
+            if object and object.GetAlpha and object.SetAlpha and not state.seen[object] then
+                state.seen[object] = true
+                state.objects[#state.objects+1] = {object=object,alpha=object:GetAlpha()}
+                object:SetAlpha(0)
+            end
+        end
+
+        -- Background and edge textures directly owned by CollectionsJournal.
+        for _,region in ipairs({CollectionsJournal:GetRegions()}) do
+            if region.GetObjectType and region:GetObjectType()=="Texture" then
+                hideObject(region)
+            end
+        end
+
+        -- Current and older clients may keep the outer border in either of
+        -- these child frames instead of among the journal's direct regions.
+        hideObject(CollectionsJournal.NineSlice)
+        hideObject(CollectionsJournal.BorderFrame)
+
+        hiddenCollectionsBackdrop = state
+    elseif hiddenCollectionsBackdrop then
+        for _,entry in ipairs(hiddenCollectionsBackdrop.objects) do
+            if entry.object and entry.object.SetAlpha then
+                entry.object:SetAlpha(entry.alpha)
+            end
+        end
+        hiddenCollectionsBackdrop = nil
+    end
+end
 
 -- PetJournal OnShow if UseDefaultJournal is false, then hide PetJournal and configure Rematch in its place with mode 3
 -- frame OnHide if attached to journal, then unparent it and show PetJournal
@@ -40,6 +87,7 @@ function rematch.journal:PLAYER_REGEN_DISABLED()
         enteringCombat = true
         rematch.frame:Hide()
         rematch.frame:SetParent(UIParent)
+        setCollectionsBackdropHidden(false)
         PetJournal:Show()
         enteringCombat = false
     end
@@ -115,6 +163,7 @@ function rematch.journal:PetJournalOnShow()
         rematch.frame:SetParent(CollectionsJournal)
         rematch.frame:SetFrameLevel(CollectionsJournal:GetFrameLevel()+600)
         rematch.frame:Configure(C.JOURNAL)
+        setCollectionsBackdropHidden(true)
         rematch.journal.UseRematchCheckButton:Enable()
         rematch.frame:Show()
     elseif InCombatLockdown() or enteringCombat then
@@ -127,6 +176,7 @@ function rematch.journal:PetJournalOnHide()
         rematch.frame:Hide()
         rematch.frame:SetParent(UIParent)
     end
+    setCollectionsBackdropHidden(false)
 end
 
 -- this is the primary way PetJournal is shown/hidden, via CollectionsJournal tabs

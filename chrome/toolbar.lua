@@ -66,7 +66,7 @@ function rematch.toolbar:Configure()
 
     self.TotalsButton:SetShown(mode~=0) -- show totals button in all but minimized mode
     self.TotalsButton.Border:SetShown(mode>1) -- show border to right of totals button in 2- and 3-panel modes
-    self.TotalsButton:SetPoint("LEFT",rematch.journal:IsActive() and 56 or 3,0) -- need to nudge totals to right in journal
+    self.TotalsButton:SetPoint("LEFT",3,0)
 
     self.AchievementTotal:SetShown(mode>1)
     self.AchievementTotal:SetPoint("LEFT",self.TotalsButton,"RIGHT",2,0)
@@ -308,5 +308,4 @@ end
 function rematch.toolbar.TotalsButton:OnClick()
     rematch.dialog:ToggleDialog(settings.MinimizePetSummary and "PetSummaryMinimized" or "PetSummary")
 end
-
 

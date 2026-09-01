@@ -17,7 +17,7 @@ function rematch.titlebar:Configure()
     local showLock = not journalActive
     local showView = mode~=0 and not journalActive
     local showMinimize = not journalActive
-    self.Portrait:SetShown(journalActive)
+    self.Portrait:Hide()
     self.LockButton:SetShown(showLock)
     self.PrevModeButton:SetShown(showView)
     self.NextModeButton:SetShown(showView)
