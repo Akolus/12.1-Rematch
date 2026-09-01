@@ -974,7 +974,7 @@ end
 -- the default sorts are: C.SORT_NAME, then C.SORT_LEVEL, finally C.SORT_RARITY
 -- a nil sortKey means to use the default sort for that level (the goal is to have an empty settings.Filters.Sort for all defaults)
 -- setting a sort should also set the subsorts to their default value; except when that sort is already used by a higher sort
--- (in this case use the first numerical sortKey 1-8 that's not used)
+-- (in this case use the first numerical sortKey 1-9 that's not used)
 function rematch.filters:SetSort(sortLevel,sortKey)
     if sortLevel==1 then
         if sortKey==C.SORT_DEFAULT_LEVEL_1 then -- default for level 1 sort is C.SORT_NAME

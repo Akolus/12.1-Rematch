@@ -23,6 +23,12 @@ This update expands pet searching, improves saved-team loading in Battle Pet dun
 - Invalid stat expressions are highlighted in red and do not replace the active valid filter.
 - Stat searches are preserved in saved favorite filters and cleared alongside the other filters.
 
+#### Unique-pet sorting
+
+- Added `Unique` to the primary, secondary, and tertiary pet sort menus.
+- Unique pets—those for which only one copy can be learned, such as Bumbles—sort first by default.
+- `Reverse Sort` places non-unique pets first when `Unique` is the active sort.
+
 #### Uncollected-pet breed support
 
 - Stat searches can now return battle pets that have not yet been collected.
@@ -41,6 +47,8 @@ This update expands pet searching, improves saved-team loading in Battle Pet dun
 - Added a 1 px cyan divider 5 px above the player's action icons.
 - Added an 8 px full-width themed XP bar at the bottom of the interface.
 - The XP bar displays exact `current/max` experience using an 11 px outlined font.
+- Added the PvP turn timer as a compact text-only row at the top of the unified interface, using the same typography, spacing, and cyan divider as the utility menu.
+- Kept Blizzard's wooden timer plaque hidden instead of embedding its legacy artwork in the modern panel.
 - The complete interface is 106 px tall at 100% scale.
 
 #### Ability effectiveness overlays

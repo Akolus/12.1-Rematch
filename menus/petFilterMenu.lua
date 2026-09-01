@@ -155,6 +155,7 @@ rematch.events:Register(rematch.petFilterMenu,"PLAYER_LOGIN",function(self)
 		{text=PET_BATTLE_STAT_POWER, radio=true, group="Sort", sortLevel=1, key=C.SORT_POWER, isChecked=pfm.GetSortRadio, func=pfm.SetSortRadio},
 		{text=PET_BATTLE_STAT_SPEED, radio=true, group="Sort", sortLevel=1, key=C.SORT_SPEED, isChecked=pfm.GetSortRadio, func=pfm.SetSortRadio},
 		{text=L["Teams"], radio=true, group="Sort", sortLevel=1, key=C.SORT_TEAMS, isChecked=pfm.GetSortRadio, func=pfm.SetSortRadio},
+		{text=L["Unique"], radio=true, group="Sort", sortLevel=1, key=C.SORT_UNIQUE, isChecked=pfm.GetSortRadio, func=pfm.SetSortRadio},
 		{text=L["Then Sort By"], subMenu="PetSecondSort"},
 		{spacer=true},
 		{text=L["Reverse Sort"], check=true, group="Sort", key=-1, isChecked=pfm.GetChecked, func=pfm.ToggleChecked},
@@ -175,6 +176,7 @@ rematch.events:Register(rematch.petFilterMenu,"PLAYER_LOGIN",function(self)
 		{text=PET_BATTLE_STAT_POWER, radio=true, group="Sort", sortLevel=2, key=C.SORT_POWER, hidden=pfm.HideSortRadio, isChecked=pfm.GetSortRadio, func=pfm.SetSortRadio},
 		{text=PET_BATTLE_STAT_SPEED, radio=true, group="Sort", sortLevel=2, key=C.SORT_SPEED, hidden=pfm.HideSortRadio, isChecked=pfm.GetSortRadio, func=pfm.SetSortRadio},
 		{text=L["Teams"], radio=true, group="Sort", sortLevel=2, key=C.SORT_TEAMS, hidden=pfm.HideSortRadio, isChecked=pfm.GetSortRadio, func=pfm.SetSortRadio},
+		{text=L["Unique"], radio=true, group="Sort", sortLevel=2, key=C.SORT_UNIQUE, hidden=pfm.HideSortRadio, isChecked=pfm.GetSortRadio, func=pfm.SetSortRadio},
 		{text=L["Finally Sort By"], subMenu="PetThirdSort"},
 		{spacer=true},
 		{text=L["Reverse Sort"], check=true, group="Sort", key=-2, isChecked=pfm.GetChecked, func=pfm.ToggleChecked},
@@ -191,6 +193,7 @@ rematch.events:Register(rematch.petFilterMenu,"PLAYER_LOGIN",function(self)
 		{text=PET_BATTLE_STAT_POWER, radio=true, group="Sort", sortLevel=3, key=C.SORT_POWER, hidden=pfm.HideSortRadio, isChecked=pfm.GetSortRadio, func=pfm.SetSortRadio},
 		{text=PET_BATTLE_STAT_SPEED, radio=true, group="Sort", sortLevel=3, key=C.SORT_SPEED, hidden=pfm.HideSortRadio, isChecked=pfm.GetSortRadio, func=pfm.SetSortRadio},
 		{text=L["Teams"], radio=true, group="Sort", sortLevel=3, key=C.SORT_TEAMS, hidden=pfm.HideSortRadio, isChecked=pfm.GetSortRadio, func=pfm.SetSortRadio},
+		{text=L["Unique"], radio=true, group="Sort", sortLevel=3, key=C.SORT_UNIQUE, hidden=pfm.HideSortRadio, isChecked=pfm.GetSortRadio, func=pfm.SetSortRadio},
 		{spacer=true},
 		{text=L["Reverse Sort"], check=true, group="Sort", key=-3, isChecked=pfm.GetChecked, func=pfm.ToggleChecked},
 	}

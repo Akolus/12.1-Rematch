@@ -3,7 +3,7 @@ local _, rematch = ...
 -- A compact replacement for Blizzard's wooden pet-battle bottom bar. The
 -- original action buttons keep their scripts and state; only their parent,
 -- layout and artwork are changed. Battle Data, Pass and Autobattle are embedded
--- in the unified menu, with the PvP turn timer above them, so one
+-- in the unified menu, with a themed PvP turn-timer row above them, so one
 -- Shift-drag/Ctrl-wheel interaction controls everything.
 
 rematch.battleActionBar = rematch.battleActionBar or {}
@@ -17,7 +17,7 @@ local VERTICAL_PADDING = 4
 local ROW_GAP = 4
 local XP_BAR_HEIGHT = 8
 local XP_BAR_GAP = 2
-local TIMER_ROW_HEIGHT = 24
+local TIMER_ROW_HEIGHT = 26
 local TIMER_ROW_GAP = 3
 local ABILITY_DIVIDER_OFFSET = 5
 local MASK_TEXTURE = "Interface\\AddOns\\Rematch\\textures\\enemyAbilityMask"
@@ -87,9 +87,16 @@ local function hideOldBottomBar(bottomFrame)
     -- This is the isolated wooden plaque left above the modern bar in PvE.
     -- Alpha remains zero even when Blizzard calls SetShown(true) every battle.
     local turnTimer = bottomFrame.TurnTimer
-    if turnTimer and turnTimer.ArtFrame2 then
-        hideTexture(turnTimer.ArtFrame2)
-        turnTimer.ArtFrame2:Hide()
+    if turnTimer then
+        -- Blizzard's timer is a large wooden plaque. Keep it alive (and its
+        -- TimerText updating) as the data source for our themed row, but never
+        -- draw the legacy artwork. SkipButton is reparented by battleControls,
+        -- so it is unaffected by the timer frame's alpha.
+        turnTimer:SetAlpha(0)
+        if turnTimer.ArtFrame2 then
+            hideTexture(turnTimer.ArtFrame2)
+            turnTimer.ArtFrame2:Hide()
+        end
     end
 
     local microMenu = bottomFrame.MicroButtonFrame
@@ -186,9 +193,22 @@ local function ensureBar(bottomFrame)
     bar.AbilityDivider = divider
 
     local timerBackground = bar:CreateTexture(nil, "BORDER")
-    setColor(timerBackground, colors.xpTrack)
+    -- Match the transparent utility buttons instead of introducing a second
+    -- boxed panel inside the unified menu.
+    timerBackground:SetColorTexture(0, 0, 0, 0)
     timerBackground:Hide()
     bar.TimerBackground = timerBackground
+
+    local timerText = bar:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    timerText:SetTextColor(0.92, 0.94, 0.96, 1)
+    timerText:SetShadowColor(0, 0, 0, 1)
+    timerText:SetShadowOffset(0, -1)
+    local timerFont, timerFontSize, timerFontFlags = timerText:GetFont()
+    if timerFont and timerFontSize then
+        bar.__rematchTimerFont = {timerFont, timerFontSize, timerFontFlags}
+    end
+    timerText:Hide()
+    bar.TimerText = timerText
 
     local timerDivider = bar:CreateTexture(nil, "ARTWORK")
     setColor(timerDivider, colors.divider)
@@ -494,8 +514,10 @@ layoutActionBar = function()
 
     local bottomFrame = _G.PetBattleFrame and PetBattleFrame.BottomFrame
     local turnTimer = bottomFrame and bottomFrame.TurnTimer
-    local timerText = turnTimer and turnTimer.TimerText
-    local timerShown = timerText and timerText:IsShown()
+    local sourceTimerText = turnTimer and turnTimer.TimerText
+    local timerValue = sourceTimerText and sourceTimerText:GetText()
+    local timerShown = turnTimer and turnTimer:IsShown() and sourceTimerText
+        and sourceTimerText:IsShown() and timerValue and timerValue ~= ""
 
     local count = #visibleButtons
     if count == 0 and not controls then
@@ -521,39 +543,32 @@ layoutActionBar = function()
     bar:SetSize(width, height)
 
     if timerShown then
-        turnTimer:SetParent(bar)
-        turnTimer:SetScale(1)
-        turnTimer:SetFrameLevel(bar:GetFrameLevel() + 2)
-        turnTimer:ClearAllPoints()
-        turnTimer:SetPoint("TOPLEFT", bar, "TOPLEFT", horizontalPadding, -verticalPadding)
-        turnTimer:SetPoint("TOPRIGHT", bar, "TOPRIGHT", -horizontalPadding, -verticalPadding)
-        turnTimer:SetHeight(timerHeight)
+        turnTimer:SetAlpha(0)
 
-        timerText:ClearAllPoints()
-        timerText:SetPoint("CENTER", turnTimer, "CENTER", 0, 0)
-        if not timerText.__rematchTimerFont then
-            local font, size, flags = timerText:GetFont()
-            if font and size then
-                timerText.__rematchTimerFont = {font, size, flags}
-            end
-            timerText:SetTextColor(0.94, 0.98, 1, 1)
-            timerText:SetShadowColor(0, 0, 0, 1)
-            timerText:SetShadowOffset(1, -1)
+        bar.TimerText:ClearAllPoints()
+        bar.TimerText:SetPoint("TOPLEFT", bar, "TOPLEFT", horizontalPadding, -verticalPadding)
+        bar.TimerText:SetPoint("BOTTOMRIGHT", bar, "TOPRIGHT", -horizontalPadding, -(verticalPadding + timerHeight))
+        bar.TimerText:SetText(timerValue)
+        if bar.__rematchTimerFont then
+            bar.TimerText:SetFont(
+                bar.__rematchTimerFont[1],
+                bar.__rematchTimerFont[2] * scale,
+                bar.__rematchTimerFont[3]
+            )
         end
-        if timerText.__rematchTimerFont then
-            timerText:SetFont(timerText.__rematchTimerFont[1], 14 * scale, "OUTLINE")
-        end
+        bar.TimerText:Show()
 
         bar.TimerBackground:ClearAllPoints()
-        bar.TimerBackground:SetPoint("TOPLEFT", turnTimer, "TOPLEFT", 0, 0)
-        bar.TimerBackground:SetPoint("BOTTOMRIGHT", turnTimer, "BOTTOMRIGHT", 0, 0)
+        bar.TimerBackground:SetPoint("TOPLEFT", bar.TimerText, "TOPLEFT", 0, 0)
+        bar.TimerBackground:SetPoint("BOTTOMRIGHT", bar.TimerText, "BOTTOMRIGHT", 0, 0)
         bar.TimerBackground:Show()
 
         bar.TimerDivider:ClearAllPoints()
-        bar.TimerDivider:SetPoint("TOPLEFT", turnTimer, "BOTTOMLEFT", 0, -timerGap / 2)
-        bar.TimerDivider:SetPoint("TOPRIGHT", turnTimer, "BOTTOMRIGHT", 0, -timerGap / 2)
+        bar.TimerDivider:SetPoint("TOPLEFT", bar.TimerText, "BOTTOMLEFT", 0, -timerGap / 2)
+        bar.TimerDivider:SetPoint("TOPRIGHT", bar.TimerText, "BOTTOMRIGHT", 0, -timerGap / 2)
         bar.TimerDivider:Show()
     else
+        bar.TimerText:Hide()
         bar.TimerBackground:Hide()
         bar.TimerDivider:Hide()
     end

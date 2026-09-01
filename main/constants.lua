@@ -225,6 +225,7 @@ rematch.constants = {
     SORT_POWER = 6,
     SORT_SPEED = 7,
     SORT_TEAMS = 8,
+    SORT_UNIQUE = 9,
     -- default sorts for the 3 sortLevels
     SORT_DEFAULT_LEVEL_1 = 1, -- SORT_NAME
     SORT_DEFAULT_LEVEL_2 = 2, -- SORT_LEVEL
