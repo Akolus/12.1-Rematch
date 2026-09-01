@@ -3,7 +3,8 @@ local _, rematch = ...
 -- A compact replacement for Blizzard's wooden pet-battle bottom bar. The
 -- original action buttons keep their scripts and state; only their parent,
 -- layout and artwork are changed. Battle Data, Pass and Autobattle are embedded
--- as the top row so one Shift-drag/Ctrl-wheel interaction controls everything.
+-- in the unified menu, with the PvP turn timer above them, so one
+-- Shift-drag/Ctrl-wheel interaction controls everything.
 
 rematch.battleActionBar = rematch.battleActionBar or {}
 local module = rematch.battleActionBar
@@ -16,6 +17,8 @@ local VERTICAL_PADDING = 4
 local ROW_GAP = 4
 local XP_BAR_HEIGHT = 8
 local XP_BAR_GAP = 2
+local TIMER_ROW_HEIGHT = 24
+local TIMER_ROW_GAP = 3
 local ABILITY_DIVIDER_OFFSET = 5
 local MASK_TEXTURE = "Interface\\AddOns\\Rematch\\textures\\enemyAbilityMask"
 local MIN_SCALE_PERCENT = 50
@@ -27,6 +30,7 @@ local layingOut = false
 local layoutScheduled = false
 local actionLayoutHooked = false
 local xpUpdateHooked = false
+local passTimerHooked = false
 local layoutActionBar
 local scheduleLayout
 
@@ -180,6 +184,17 @@ local function ensureBar(bottomFrame)
     setColor(divider, colors.divider)
     divider:SetHeight(1)
     bar.AbilityDivider = divider
+
+    local timerBackground = bar:CreateTexture(nil, "BORDER")
+    setColor(timerBackground, colors.xpTrack)
+    timerBackground:Hide()
+    bar.TimerBackground = timerBackground
+
+    local timerDivider = bar:CreateTexture(nil, "ARTWORK")
+    setColor(timerDivider, colors.divider)
+    timerDivider:SetHeight(1)
+    timerDivider:Hide()
+    bar.TimerDivider = timerDivider
 
     local xpBar = CreateFrame("StatusBar", "RematchPetBattleXPBar", bar)
     xpBar:SetStatusBarTexture("Interface\\Buttons\\WHITE8X8")
@@ -477,6 +492,11 @@ layoutActionBar = function()
         controlHeight = controls:GetHeight()
     end
 
+    local bottomFrame = _G.PetBattleFrame and PetBattleFrame.BottomFrame
+    local turnTimer = bottomFrame and bottomFrame.TurnTimer
+    local timerText = turnTimer and turnTimer.TimerText
+    local timerShown = timerText and timerText:IsShown()
+
     local count = #visibleButtons
     if count == 0 and not controls then
         bar:Hide()
@@ -489,17 +509,58 @@ layoutActionBar = function()
     local gap = count > 0 and controls and ROW_GAP * scale or 0
     local horizontalPadding = OUTER_PADDING * scale
     local verticalPadding = VERTICAL_PADDING * scale
+    local timerHeight = timerShown and TIMER_ROW_HEIGHT * scale or 0
+    local timerGap = timerShown and controls and TIMER_ROW_GAP * scale or 0
     local xpReserve = count > 0 and (XP_BAR_HEIGHT + XP_BAR_GAP) * scale or 0
     local actionBottom = verticalPadding + xpReserve
     local width = math.max(actionWidth, controlWidth) + horizontalPadding * 2
-    local height = actionHeight + controlHeight + gap + verticalPadding + actionBottom
+    local height = timerHeight + timerGap + actionHeight + controlHeight + gap
+        + verticalPadding + actionBottom
 
     bar:SetScale(1)
     bar:SetSize(width, height)
 
+    if timerShown then
+        turnTimer:SetParent(bar)
+        turnTimer:SetScale(1)
+        turnTimer:SetFrameLevel(bar:GetFrameLevel() + 2)
+        turnTimer:ClearAllPoints()
+        turnTimer:SetPoint("TOPLEFT", bar, "TOPLEFT", horizontalPadding, -verticalPadding)
+        turnTimer:SetPoint("TOPRIGHT", bar, "TOPRIGHT", -horizontalPadding, -verticalPadding)
+        turnTimer:SetHeight(timerHeight)
+
+        timerText:ClearAllPoints()
+        timerText:SetPoint("CENTER", turnTimer, "CENTER", 0, 0)
+        if not timerText.__rematchTimerFont then
+            local font, size, flags = timerText:GetFont()
+            if font and size then
+                timerText.__rematchTimerFont = {font, size, flags}
+            end
+            timerText:SetTextColor(0.94, 0.98, 1, 1)
+            timerText:SetShadowColor(0, 0, 0, 1)
+            timerText:SetShadowOffset(1, -1)
+        end
+        if timerText.__rematchTimerFont then
+            timerText:SetFont(timerText.__rematchTimerFont[1], 14 * scale, "OUTLINE")
+        end
+
+        bar.TimerBackground:ClearAllPoints()
+        bar.TimerBackground:SetPoint("TOPLEFT", turnTimer, "TOPLEFT", 0, 0)
+        bar.TimerBackground:SetPoint("BOTTOMRIGHT", turnTimer, "BOTTOMRIGHT", 0, 0)
+        bar.TimerBackground:Show()
+
+        bar.TimerDivider:ClearAllPoints()
+        bar.TimerDivider:SetPoint("TOPLEFT", turnTimer, "BOTTOMLEFT", 0, -timerGap / 2)
+        bar.TimerDivider:SetPoint("TOPRIGHT", turnTimer, "BOTTOMRIGHT", 0, -timerGap / 2)
+        bar.TimerDivider:Show()
+    else
+        bar.TimerBackground:Hide()
+        bar.TimerDivider:Hide()
+    end
+
     if controls then
         controls:ClearAllPoints()
-        controls:SetPoint("TOP", bar, "TOP", 0, -verticalPadding)
+        controls:SetPoint("TOP", bar, "TOP", 0, -(verticalPadding + timerHeight + timerGap))
     end
 
     if count > 0 then
@@ -554,7 +615,6 @@ layoutActionBar = function()
     bar:Show()
     layingOut = false
 
-    local bottomFrame = _G.PetBattleFrame and PetBattleFrame.BottomFrame
     if bottomFrame then
         updateEffectiveness(bottomFrame)
         updateXPBar(bottomFrame)
@@ -624,6 +684,12 @@ function module:Refresh()
         hooksecurefunc("PetBattleFrame_UpdateXpBar", function(petBattleFrame)
             updateXPBar(petBattleFrame and petBattleFrame.BottomFrame or bottomFrame)
         end)
+    end
+
+    if not passTimerHooked and type(_G.PetBattleFrame_UpdatePassButtonAndTimer) == "function"
+        and hooksecurefunc then
+        passTimerHooked = true
+        hooksecurefunc("PetBattleFrame_UpdatePassButtonAndTimer", scheduleLayout)
     end
 
     scheduleLayout()
