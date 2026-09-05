@@ -987,6 +987,9 @@ function module:GetBaseSize()
 end
 
 function module:Refresh(skipActionBarRefresh)
+    if not rematch:IsCustomBattleUIEnabled() then
+        return
+    end
     -- Refresh reparents and anchors battle buttons as well as setting keys.
     if InCombatLockdown() then
         pendingControlRefresh = true

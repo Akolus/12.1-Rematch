@@ -4,7 +4,7 @@ local _, rematch = ...
 -- original action buttons keep their scripts and state; only their parent,
 -- layout and artwork are changed. Battle Data, Pass and Autobattle are embedded
 -- in the unified menu, with a themed PvP turn-timer row above them, so one
--- Shift-drag/Ctrl-wheel interaction controls everything.
+-- top-edge drag (or Shift-drag)/Ctrl-wheel interaction controls everything.
 
 rematch.battleActionBar = rematch.battleActionBar or {}
 local module = rematch.battleActionBar
@@ -297,8 +297,8 @@ local function hideButtonChrome(button)
     hideTexture(button.hover)
 end
 
-local function beginMove()
-    if not IsShiftKeyDown() or not bar then
+local function beginMove(handle)
+    if not bar or (handle ~= bar.DragHandle and not IsShiftKeyDown()) then
         return
     end
 
@@ -315,6 +315,9 @@ local function endMove()
     bar:StopMovingOrSizing()
     bar.__rematchMoving = false
     savePosition()
+    if scheduleLayout then
+        scheduleLayout()
+    end
 end
 
 function module:ChangeScale(delta)
@@ -485,6 +488,11 @@ layoutActionBar = function()
         return
     end
 
+    -- Timer refreshes must not reset the anchor while the user is dragging.
+    if bar.__rematchMoving then
+        return
+    end
+
     layingOut = true
 
     local scale = getScale()
@@ -541,6 +549,11 @@ layoutActionBar = function()
 
     bar:SetScale(1)
     bar:SetSize(width, height)
+    if bar.DragHandle then
+        -- Use the top padding and timer row, leaving utility buttons clickable.
+        bar.DragHandle:SetHeight(verticalPadding + timerHeight + timerGap)
+        bar.DragHandle:SetHitRectInsets(0, 0, -6 * scale, 0)
+    end
 
     if timerShown then
         turnTimer:SetAlpha(0)
@@ -665,6 +678,9 @@ function module:StopMoving()
 end
 
 function module:Refresh()
+    if not rematch:IsCustomBattleUIEnabled() then
+        return
+    end
     local bottomFrame = _G.PetBattleFrame and PetBattleFrame.BottomFrame
     if not bottomFrame then
         return
@@ -674,6 +690,18 @@ function module:Refresh()
     ensureBar(bottomFrame)
     if not bar.__rematchUnifiedInteraction then
         bar.__rematchUnifiedInteraction = true
+        local handle = CreateFrame("Frame", nil, bar)
+        bar.DragHandle = handle
+        handle:SetPoint("TOPLEFT", bar, "TOPLEFT")
+        handle:SetPoint("TOPRIGHT", bar, "TOPRIGHT")
+        handle:SetHeight(VERTICAL_PADDING)
+        handle:SetFrameLevel(bar:GetFrameLevel() + 3)
+        handle:EnableMouse(true)
+        handle:RegisterForDrag("LeftButton")
+        handle:SetScript("OnDragStart", beginMove)
+        handle:SetScript("OnDragStop", endMove)
+        handle:SetScript("OnHide", endMove)
+        bar:HookScript("OnHide", endMove)
         bar:EnableMouse(true)
         bar:EnableMouseWheel(true)
         bar:RegisterForDrag("LeftButton")

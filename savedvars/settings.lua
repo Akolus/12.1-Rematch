@@ -255,6 +255,8 @@ local defaults = {
     EnemyAbilityBarY = false,
     EnemyAbilityScale = 100,
 
+    UseCustomBattleUI = false, -- Opt in to the custom battle UI (requires reload)
+
     -- Pet Battle Data/Pass/Autobattle controls
     BattleControlsX = false,
     BattleControlsY = false,
@@ -299,3 +301,17 @@ rematch.events:Register(rematch.settings,"PLAYER_LOGIN",function(self)
         end
     end
 end)
+
+-- Freeze the UI choice for this login. Restoring reparented Blizzard buttons,
+-- textures and secure hooks requires a reload; do not partially switch live.
+-- Ignore early refreshes until saved variables have finished loading.
+local customBattleUIEnabled
+function rematch:IsCustomBattleUIEnabled()
+    if not IsLoggedIn() then
+        return false
+    end
+    if customBattleUIEnabled == nil then
+        customBattleUIEnabled = self.settings.UseCustomBattleUI == true
+    end
+    return customBattleUIEnabled
+end

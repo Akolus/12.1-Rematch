@@ -340,6 +340,9 @@ end
 
 
 local function ensureBattleButton()
+    if not rematch:IsCustomBattleUIEnabled() then
+        return
+    end
     if battleButton or not PetBattleFrame or not PetBattleFrame.BottomFrame or not PetBattleFrame.BottomFrame.TurnTimer then
         return
     end

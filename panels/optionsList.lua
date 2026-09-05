@@ -117,6 +117,7 @@ rematch.optionsList = {
 
 	-- Appearance Options
 	{type="header", group=3, text=L["Appearance Options"]},
+    {type="check", group=3, text=L["Use Custom Battle UI (Requires Reload)"], var="UseCustomBattleUI", func="CustomBattleUI", tooltip=L["Enable Rematch's custom pet battle menu, action bar and PvP timer. Unchecked uses Blizzard's default battle UI. After changing this option, type /reload to apply it."]},
 	{type="check", group=3, text=L["Compact Pet List"], var="CompactPetList", func="CompactPetList", tooltip=L["Display more pets in the pet list by using a more compact view of each pet."]},
     {type="check", group=3, text=L["Compact Team List"], var="CompactTeamList", func="CompactTeamList", tooltip=L["Display more teams in the team list by using a more compact view of each team."]},
 	{type="check", group=3, text=L["Compact Target List"], var="CompactTargetList", func="CompactTargetList", tooltip=L["Display more targets in the target list by using a more compact view of each target."]},

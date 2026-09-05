@@ -390,6 +390,11 @@ end
 
 rematch.optionsPanel.funcs = {}
 
+function rematch.optionsPanel.funcs:CustomBattleUI()
+    print(L["Rematch: Battle UI preference saved. Type /reload to apply the change."])
+end
+
+
 function rematch.optionsPanel.funcs:InteractOnTarget(value)
     if value~=C.INTERACT_NONE then
         settings.InteractOnSoftInteract = C.INTERACT_NONE
