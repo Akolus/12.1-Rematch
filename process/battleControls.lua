@@ -32,6 +32,7 @@ local keybindClickCatcher
 local rematchOwnedAutoButton
 local applyAutobattleBinding, saveAutobattleKey
 local pendingAutobattleBinding
+local battleClosing = false
 local pendingControlRefresh
 
 local function setTextureColor(texture, color)
@@ -482,7 +483,14 @@ applyAutobattleBinding = function(binding)
     end
     pendingAutobattleBinding = nil
 
-    notifyPetBattleScripts(rematch.settings.AutobattleHotKey)
+    local inBattle = not battleClosing and C_PetBattles and C_PetBattles.IsInBattle
+        and C_PetBattles.IsInBattle()
+    local bindingActive = inBattle and rematch:IsCustomBattleUIEnabled()
+    -- The script addon may install bindings in its settings callbacks too.
+    -- Notify it only during a battle; keep our saved preference outside battle.
+    if bindingActive then
+        notifyPetBattleScripts(rematch.settings.AutobattleHotKey)
+    end
 
     local autoButton = getAutoButton()
     local owner = getBindingOwner()
@@ -492,7 +500,7 @@ applyAutobattleBinding = function(binding)
     end
 
     local clickName = autoButton and autoButton.GetName and autoButton:GetName()
-    if binding and clickName then
+    if bindingActive and binding and clickName then
         pcall(SetOverrideBindingClick, owner, true, binding, clickName, "LeftButton")
         pcall(SetOverrideBindingClick, autoButton, true, binding, clickName, "LeftButton")
     end
@@ -1061,8 +1069,17 @@ eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:RegisterEvent("PET_BATTLE_OPENING_START")
 eventFrame:RegisterEvent("PET_BATTLE_OPENING_DONE")
 eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+eventFrame:RegisterEvent("PET_BATTLE_OVER")
+eventFrame:RegisterEvent("PET_BATTLE_CLOSE")
+eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:SetScript("OnEvent", function(_, event)
-    if event == "PLAYER_REGEN_ENABLED" then
+    if event == "PET_BATTLE_OVER" or event == "PET_BATTLE_CLOSE" then
+        -- OVER can fire before IsInBattle becomes false. Prevent delayed
+        -- refreshes/OnShow callbacks from restoring the override during exit.
+        battleClosing = true
+        closeKeybindCapture()
+        applyAutobattleBinding()
+    elseif event == "PLAYER_REGEN_ENABLED" then
         if pendingAutobattleBinding then
             applyAutobattleBinding()
         end
@@ -1070,6 +1087,13 @@ eventFrame:SetScript("OnEvent", function(_, event)
             scheduleRefresh()
         end
     else
+        if event == "PET_BATTLE_OPENING_START" or event == "PET_BATTLE_OPENING_DONE"
+            or event == "PLAYER_ENTERING_WORLD" then
+            battleClosing = false
+        end
+        if event == "PLAYER_ENTERING_WORLD" then
+            applyAutobattleBinding()
+        end
         scheduleRefresh()
     end
 end)
