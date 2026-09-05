@@ -29,10 +29,25 @@ local targetNameLookup = {} -- WoW 12.1 fallback: readable unit name -> unique n
 local targetNameCache = {} -- indexed by npcID, the localized name of the npcID
 local targetsToCache = {} -- indexed by npcID, the number of cache attempts for this npcID
 local reusedPets = {} -- reused table of pets to reduce garbage creation
+local sortedTargetNames = {}
 
 local targetHistory = {}
 local targetHistoryLookup = {} -- reusable table for target history cleanup
 local wildPets = {} -- lookup by npcID, whether this is a wild pet
+
+-- Secret values must be rejected before they are compared, indexed or passed
+-- to string functions. In particular, keep this check first in every guard:
+-- Lua evaluates boolean expressions from left to right.
+local function isSecretValue(value)
+    return issecretvalue and issecretvalue(value)
+end
+
+local function isPublicString(value)
+    if isSecretValue(value) then
+        return false
+    end
+    return type(value) == "string" and value ~= ""
+end
 
 local testModel = CreateFrame("PlayerModel") -- used to get displayIDs, a hidden model to SetCreature(npcID) and GetDisplayInfo()
 testModel:Hide()
@@ -55,29 +70,63 @@ rematch.events:Register(rematch.targetInfo,"PLAYER_LOGIN",function(self)
                 targetNameLookup[targetName] = false
             elseif targetNameLookup[targetName]~=false then
                 targetNameLookup[targetName] = info[2]
+                local lower = strlower(targetName)
+                if not targetNameLookup[lower] then
+                    targetNameLookup[lower] = info[2]
+                elseif targetNameLookup[lower] ~= info[2] then
+                    targetNameLookup[lower] = false
+                end
             end
         end
 
         -- WoW 12.1 compatibility:
         -- In restricted instances UnitGUID/unit names may be secret, but battle-pet
-        -- species IDs can remain readable before combat. Build a lookup from the
-        -- first enemy pet species to its notable target. If a species maps to more
-        -- than one target, mark it ambiguous and never guess.
-        local firstPet = info[6]
-        local speciesID
-        if type(firstPet)=="string" then
-            speciesID = tonumber(firstPet:match("^battlepet:(%d+):"))
-        elseif type(firstPet)=="number" then
-            speciesID = firstPet
-        end
-        if speciesID then
-            if speciesTargetLookup[speciesID] and speciesTargetLookup[speciesID]~=info[2] then
-                speciesTargetLookup[speciesID] = false
-            elseif speciesTargetLookup[speciesID]~=false then
-                speciesTargetLookup[speciesID] = info[2]
+        -- species IDs can remain readable before combat. Map every enemy pet on the
+        -- notable team (not only the first): Plagued Critters is a swarm, and the
+        -- targeted rat/roach is often pet 2 or 3. If a species maps to more than
+        -- one target, mark it ambiguous and never guess.
+        for slot = 6, #info do
+            local pet = info[slot]
+            local speciesID
+            if type(pet)=="string" then
+                speciesID = tonumber(pet:match("^battlepet:(%d+):"))
+            elseif type(pet)=="number" then
+                speciesID = pet
+            end
+            if speciesID then
+                if speciesTargetLookup[speciesID] and speciesTargetLookup[speciesID]~=info[2] then
+                    speciesTargetLookup[speciesID] = false
+                elseif speciesTargetLookup[speciesID]~=false then
+                    speciesTargetLookup[speciesID] = info[2]
+                end
             end
         end
     end
+
+    if rematch.targetData.nameAliases then
+        for aliasName, aliasNpcID in pairs(rematch.targetData.nameAliases) do
+            if targetNameLookup[aliasName] and targetNameLookup[aliasName]~=aliasNpcID then
+                targetNameLookup[aliasName] = false
+            elseif targetNameLookup[aliasName]~=false then
+                targetNameLookup[aliasName] = aliasNpcID
+                local lower = strlower(aliasName)
+                if not targetNameLookup[lower] then
+                    targetNameLookup[lower] = aliasNpcID
+                elseif targetNameLookup[lower] ~= aliasNpcID then
+                    targetNameLookup[lower] = false
+                end
+            end
+        end
+    end
+
+    wipe(sortedTargetNames)
+    for name, npcID in pairs(targetNameLookup) do
+        if type(name) == "string" and type(npcID) == "number" and #name >= 10 then
+            sortedTargetNames[#sortedTargetNames + 1] = name
+        end
+    end
+    table.sort(sortedTargetNames, function(a, b) return #a > #b end)
+
     -- if sometehing targeted while logging in, capture target
     if UnitExists("target") then
         self:PLAYER_TARGET_CHANGED()
@@ -103,25 +152,30 @@ local function cleanupTargetHistory()
 end
 
 function rematch.targetInfo:PLAYER_TARGET_CHANGED()
+    local npcID
     if UnitExists("target") then
-        local npcID = rematch.targetInfo:GetUnitNpcID("target")
-        if npcID then
-            self.recentTarget = npcID
-            rematch.loadedTargetPanel.teamMode = C.ENEMY_TEAM
-
-            -- add npcID to history and come back in a while to do cleanup so list doesn't get huge
-            -- and we don't waste time doing maintenance in a PLAYER_TARGET_CHANGED
-            tinsert(targetHistory,npcID)
-            rematch.timer:Start(30,cleanupTargetHistory)
-
-            -- if the target is a wild pet that hasn't been saved to the wildPets lookup yet, add it
-            if not wildPets[npcID] and UnitIsWildBattlePet("target") then
-                wildPets[npcID] = UnitBattlePetSpeciesID("target")
+        npcID = rematch.targetInfo:GetUnitNpcID("target")
+    end
+    if not npcID then
+        npcID = rematch.targetInfo:GetUnitNpcID("npc")
+            or rematch.targetInfo:GetNpcIDFromPublicName("target")
+    end
+    if npcID then
+        self.recentTarget = npcID
+        rematch.loadedTargetPanel.teamMode = C.ENEMY_TEAM
+        tinsert(targetHistory,npcID)
+        rematch.timer:Start(30,cleanupTargetHistory)
+        if not wildPets[npcID] and UnitExists("target") then
+            local isWildPet = UnitIsWildBattlePet("target")
+            if not isSecretValue(isWildPet) and isWildPet then
+                local speciesID = UnitBattlePetSpeciesID("target")
+                if not isSecretValue(speciesID) and type(speciesID) == "number" then
+                    wildPets[npcID] = speciesID
+                end
             end
-
         end
         self.currentTarget = npcID
-    else
+    elseif not UnitExists("target") then
         self.currentTarget = nil
     end
     rematch.events:Fire("REMATCH_TARGET_CHANGED")
@@ -133,13 +187,61 @@ rematch.events:Register(rematch.targetInfo,"PLAYER_TARGET_CHANGED",rematch.targe
 
 -- Gossip-enabled dungeon opponents can finish exposing their unit information
 -- after PLAYER_TARGET_CHANGED. Re-evaluate once the gossip frame is available.
+function rematch.targetInfo:ApplyIdentifiedNpc(npcID)
+    if not npcID then
+        return
+    end
+    if npcID == self.currentTarget then
+        rematch.events:Fire("REMATCH_TARGET_CHANGED")
+        return
+    end
+    self.recentTarget = npcID
+    self.currentTarget = npcID
+    rematch.loadedTargetPanel.teamMode = C.ENEMY_TEAM
+    tinsert(targetHistory, npcID)
+    rematch.events:Fire("REMATCH_TARGET_CHANGED")
+end
+
 function rematch.targetInfo:GOSSIP_SHOW()
-    local npcID = rematch.targetInfo:GetUnitNpcID("target")
-    if npcID and npcID~=self.currentTarget then
-        self:PLAYER_TARGET_CHANGED()
+    local npcID = rematch.targetInfo:GetUnitNpcID("npc")
+        or rematch.targetInfo:GetUnitNpcID("target")
+        or rematch.targetInfo:GetUnitNpcID("softinteract")
+        or rematch.targetInfo:GetNpcIDFromPublicName("npc")
+    self:ApplyIdentifiedNpc(npcID)
+    if not npcID and C_Timer and C_Timer.After then
+        C_Timer.After(0.15, function()
+            local retry = rematch.targetInfo:GetUnitNpcID("npc")
+                or rematch.targetInfo:GetNpcIDFromPublicName("npc")
+            rematch.targetInfo:ApplyIdentifiedNpc(retry)
+        end)
     end
 end
 rematch.events:Register(rematch.targetInfo,"GOSSIP_SHOW",rematch.targetInfo.GOSSIP_SHOW)
+
+function rematch.targetInfo:NAME_PLATE_UNIT_ADDED(unit)
+    if not unit then
+        return
+    end
+    local function isSameUnit(other)
+        if not UnitIsUnit then
+            return
+        end
+        local ok, result = pcall(UnitIsUnit, unit, other)
+        return ok and not isSecretValue(result) and result and true or false
+    end
+    if isSameUnit("target") or isSameUnit("npc") then
+        local npcID = rematch.targetInfo:GetUnitNpcID(unit) or rematch.targetInfo:GetNpcIDFromPublicName(unit)
+        self:ApplyIdentifiedNpc(npcID)
+    end
+end
+rematch.events:Register(rematch.targetInfo,"NAME_PLATE_UNIT_ADDED",rematch.targetInfo.NAME_PLATE_UNIT_ADDED)
+
+function rematch.targetInfo:SCENARIO_UPDATE()
+    local npcID = rematch.targetInfo:GetNpcIDFromPublicName("target")
+    self:ApplyIdentifiedNpc(npcID)
+end
+rematch.events:Register(rematch.targetInfo,"SCENARIO_UPDATE",rematch.targetInfo.SCENARIO_UPDATE)
+rematch.events:Register(rematch.targetInfo,"SCENARIO_CRITERIA_UPDATE",rematch.targetInfo.SCENARIO_UPDATE)
 
 
 -- sometimes this addon "targets" something via loadedTargetPanel:SetTarget(npcID); these should show in history also
@@ -163,6 +265,215 @@ function rematch.targetInfo:GetTargetHistory()
     return targetHistory
 end
 
+local function lookupNpcByName(name)
+    if not isPublicString(name) then
+        return
+    end
+    name = name:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("%.+$", ""):gsub("%s+$", "")
+    local npcID = targetNameLookup[name]
+    if type(npcID) ~= "number" then
+        npcID = targetNameLookup[strlower(name)]
+    end
+    if type(npcID) == "number" then
+        return rematch.targetData.redirects[npcID] or npcID
+    end
+    -- Truncated unit-frame names such as "Plagued Critt..."
+    if #name >= 8 then
+        local hits, only, count = {}, nil, 0
+        local prefix = strlower(name)
+        for known, id in pairs(targetNameLookup) do
+            if type(known) == "string" and type(id) == "number" and #known >= #name and strlower(known):sub(1, #prefix) == prefix then
+                if not hits[id] then
+                    hits[id] = true
+                    count = count + 1
+                    only = id
+                end
+            end
+        end
+        if count == 1 then
+            return rematch.targetData.redirects[only] or only
+        end
+    end
+end
+
+local function matchPublicBlob(text)
+    if not isPublicString(text) then
+        return
+    end
+    local lower = strlower(text)
+    local hints = rematch.targetData.publicTextHints
+    if hints then
+        for hint, npcID in pairs(hints) do
+            if lower:find(hint, 1, true) then
+                return rematch.targetData.redirects[npcID] or npcID
+            end
+        end
+    end
+    for i = 1, #sortedTargetNames do
+        local known = sortedTargetNames[i]
+        if lower:find(strlower(known), 1, true) then
+            return lookupNpcByName(known)
+        end
+    end
+end
+
+local function considerName(name, into)
+    local npcID = lookupNpcByName(name)
+    if npcID then
+        into[#into + 1] = npcID
+    end
+end
+
+local function scanFrameForKnownNames(frame, into, depth)
+    if not frame or (depth or 0) > 6 then
+        return
+    end
+    if frame.GetObjectType and frame:GetObjectType() == "FontString" then
+        considerName(frame.GetText and frame:GetText(), into)
+        return
+    end
+    if frame.GetRegions then
+        local regions = {frame:GetRegions()}
+        for i = 1, #regions do
+            local region = regions[i]
+            if region and region.GetObjectType and region:GetObjectType() == "FontString" then
+                considerName(region.GetText and region:GetText(), into)
+            end
+        end
+    end
+    if frame.GetChildren then
+        local children = {frame:GetChildren()}
+        for i = 1, #children do
+            scanFrameForKnownNames(children[i], into, (depth or 0) + 1)
+        end
+    end
+end
+
+-- Identify a notable npcID from any public name still readable in a secret dungeon:
+-- unit names, gossip titles, and on-screen gossip FontStrings.
+function rematch.targetInfo:GetNpcIDFromPublicName(unit)
+    local found = {}
+
+    if unit then
+        considerName(UnitName(unit), found)
+        if GetUnitName then
+            considerName(GetUnitName(unit, false), found)
+        end
+    end
+
+    considerName(UnitName("npc"), found)
+    considerName(UnitName("target"), found)
+    considerName(UnitName("softinteract"), found)
+    considerName(UnitName("mouseover"), found)
+
+    if C_GossipInfo then
+        if C_GossipInfo.GetCustomGossipTitleName then
+            considerName(C_GossipInfo.GetCustomGossipTitleName(), found)
+        end
+        if C_GossipInfo.GetText then
+            local npcID = matchPublicBlob(C_GossipInfo.GetText())
+            if npcID then
+                found[#found + 1] = npcID
+            end
+        end
+        if C_GossipInfo.GetOptions then
+            local options = C_GossipInfo.GetOptions()
+            if type(options) == "table" then
+                for i = 1, #options do
+                    local option = options[i]
+                    local optionName = type(option) == "table" and (option.name or option.text or option[2]) or option
+                    local npcID = lookupNpcByName(optionName) or matchPublicBlob(optionName)
+                    if npcID then
+                        found[#found + 1] = npcID
+                    end
+                end
+            end
+        end
+    end
+
+    if GossipFrame then
+        if GossipFrame.TitleContainer and GossipFrame.TitleContainer.TitleText then
+            considerName(GossipFrame.TitleContainer.TitleText:GetText(), found)
+        end
+        if GossipFrameNpcNameText then
+            considerName(GossipFrameNpcNameText:GetText(), found)
+        end
+        pcall(scanFrameForKnownNames, GossipFrame, found, 0)
+        local npcID = matchPublicBlob(GossipFrameGreetingText and GossipFrameGreetingText:GetText())
+        if npcID then
+            found[#found + 1] = npcID
+        end
+    end
+
+    if TargetFrame then
+        if TargetFrame.name then
+            considerName(TargetFrame.name.GetText and TargetFrame.name:GetText(), found)
+        end
+        if TargetFrame.TargetFrameContent and TargetFrame.TargetFrameContent.TargetFrameContentMain then
+            local main = TargetFrame.TargetFrameContent.TargetFrameContentMain
+            if main.Name and main.Name.GetText then
+                considerName(main.Name:GetText(), found)
+            end
+        end
+    end
+
+    if C_NamePlate and C_NamePlate.GetNamePlateForUnit then
+        for _, token in ipairs({unit or "target", "target", "npc", "softinteract", "mouseover"}) do
+            local plate = C_NamePlate.GetNamePlateForUnit(token)
+            if plate then
+                pcall(scanFrameForKnownNames, plate, found, 0)
+                if plate.UnitFrame then
+                    if plate.UnitFrame.name then
+                        considerName(plate.UnitFrame.name.GetText and plate.UnitFrame.name:GetText(), found)
+                    end
+                    if plate.UnitFrame.Name then
+                        considerName(plate.UnitFrame.Name.GetText and plate.UnitFrame.Name:GetText(), found)
+                    end
+                end
+            end
+        end
+    end
+
+    if C_Scenario then
+        local ok, scenarioName, currentStage = pcall(C_Scenario.GetInfo)
+        if ok then
+            local npcID = matchPublicBlob(scenarioName)
+            if npcID then
+                found[#found + 1] = npcID
+            end
+        end
+        if C_Scenario.GetStepInfo then
+            local okStep, stepName, stageDescription = pcall(C_Scenario.GetStepInfo)
+            if okStep then
+                local npcID = matchPublicBlob(stepName) or matchPublicBlob(stageDescription)
+                if npcID then
+                    found[#found + 1] = npcID
+                end
+            end
+        end
+    end
+
+    if ScenarioObjectiveTracker then
+        pcall(scanFrameForKnownNames, ScenarioObjectiveTracker, found, 0)
+    end
+
+    if C_TooltipInfo and C_TooltipInfo.GetUnit then
+        for _, tooltipUnit in ipairs({unit or "npc", "npc", "target"}) do
+            local ok, info = pcall(C_TooltipInfo.GetUnit, tooltipUnit)
+            if ok and info and info.lines then
+                for i = 1, #info.lines do
+                    local line = info.lines[i]
+                    if line then
+                        considerName(line.leftText, found)
+                    end
+                end
+            end
+        end
+    end
+
+    return found[1]
+end
+
 -- returns the npcID of the given unit ("target"/"mouseover"), or nil if unit doesn't exist/is a player
 function rematch.targetInfo:GetUnitNpcID(unit)
     if not UnitExists(unit) then
@@ -171,7 +482,7 @@ function rematch.targetInfo:GetUnitNpcID(unit)
 
     -- Normal path: use the unit GUID when Blizzard allows addon code to read it.
     local guid = UnitGUID(unit)
-    if guid and not issecretvalue(guid) then
+    if not isSecretValue(guid) and type(guid) == "string" then
         local npcID = tonumber(guid:match(".-%-%d+%-%d+%-%d+%-%d+%-(%d+)"))
         if npcID and npcID~=0 then
             return rematch.targetData.redirects[npcID] or npcID
@@ -184,7 +495,7 @@ function rematch.targetInfo:GetUnitNpcID(unit)
     -- dungeon opponents such as "Captain" Klutz are battle pets but may not be
     -- flagged as wild pets before combat.
     local speciesID = UnitBattlePetSpeciesID(unit)
-    if speciesID and not issecretvalue(speciesID) then
+    if not isSecretValue(speciesID) and type(speciesID) == "number" then
         local npcID = speciesTargetLookup[speciesID]
         if type(npcID)=="number" then
             return rematch.targetData.redirects[npcID] or npcID
@@ -197,16 +508,18 @@ function rematch.targetInfo:GetUnitNpcID(unit)
     -- target. Explicitly exclude players to avoid matching an NPC-like character
     -- name.
     local isPlayer = UnitIsPlayer(unit)
-    if not issecretvalue(isPlayer) and isPlayer then
+    if not isSecretValue(isPlayer) and isPlayer then
         return
     end
     local unitName = UnitName(unit)
-    if not issecretvalue(unitName) and type(unitName)=="string" then
-        local npcID = targetNameLookup[unitName]
-        if type(npcID)=="number" then
-            return rematch.targetData.redirects[npcID] or npcID
+    if isPublicString(unitName) then
+        local npcID = lookupNpcByName(unitName)
+        if npcID then
+            return npcID
         end
     end
+
+    return rematch.targetInfo:GetNpcIDFromPublicName(unit)
 end
 
 -- gets the localized name of an npcID from a tooltip scan. tooltip scans are computationally expensive so
@@ -236,7 +549,7 @@ function rematch.targetInfo:GetNpcName(npcID,noDisplay)
         tooltip:SetHyperlink(format("unit:Creature-0-0-0-0-%d-0000000000",npcID))
         if tooltip:NumLines()>0 then
             local name = RematchTooltipScanTextLeft1:GetText()
-            if name and not issecretvalue(name) and name:len()>0 then
+            if isPublicString(name) then
                 targetNameCache[npcID] = name
                 targetsToCache[npcID] = nil
                 return name..subname

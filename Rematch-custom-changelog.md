@@ -1,5 +1,70 @@
 # Rematch 12.1 Custom Update — Changelog
 
+## [5.3.14]
+
+- Identify secret dungeon NPCs from gossip body/options ("Extermination Time!", "swarm of plagued rats"), scenario criteria ("Defeat the Plagued Critters"), nameplates, and truncated target-frame names.
+
+## [5.3.13]
+
+- Fixed FontString:SetText() on the Autobattle + (font was not set), which hid the battle menu.
+- Dungeon gossip targets: identify the NPC by on-screen / gossip name when GUID and ID are secret, then autoload from that name.
+
+## [5.3.12]
+
+- Battle menu: removed a bad RegisterForClicks() call that could error and hide the bar.
+- Pack encounters (Door Control Console, Horu Cloudwatcher, Plagued Critters, and other named companion pets) now map to the trainer/console via name aliases, all enemy species IDs, and known creature redirects.
+
+## [5.3.11]
+
+- Stratholme Plagued Critters auto-load: targeting a Diseased Rat, Plague Rat, or Plague Roach now maps to the Plagued Critters encounter (155145) so the saved team loads.
+
+## [5.3.10]
+
+- + is 22 px, outlined, and anchored to the top-right corner of the whole menu bar.
+- MWD / hotkey label is centered in the cell between the Autobattle divider and the right edge.
+
+## [5.3.9]
+
+- Vertical divider between Autobattle and the hotkey.
+- + is larger (~18 px) and sits in the top-right corner of the bar. Tooltip only on +.
+- Hotkey shows a short label (MOUSEWHEELDOWN = MWD). Hovering the short label shows the full bind next to the cursor.
+- Battle Data / Pass / Autobattle font size reduced by 1.
+
+## [5.3.8]
+
+- Fixed a Lua parse error in battleControls (unclosed fitHotKey) that stopped Rematch from loading, which hid the battle bar and menu.
+
+## [5.3.7]
+
+- Removed Autobattle ON toggle, pink marker, and any extra click handling. Left-click Autobattle is Pet Battle Scripts again.
+- The + keybind now actually binds the key: it writes Pet Battle Scripts' setting and applies SetOverrideBindingClick so the new key clicks Autobattle. Right-click + clears it.
+
+## [5.3.6]
+
+- Right-click Autobattle in a pet battle shows a 12 px marker (RGB 255,51,204) at the top-left of the UI. The companion WheelClicker starts scrolling while that marker is visible and stops when the battle ends or Autobattle is turned off.
+- The marker does not take mouse input.
+
+## [5.3.5]
+
+- Removed the mouse/keyboard capture from Autobattle. That iteration blocked the game; it is gone.
+- Autobattle no longer hooks WorldFrame, UIParent, or global mouse/key input.
+- Left-click Autobattle still plays one scripted turn (your click is the required hardware event). Bind a key with + for later turns.
+
+## [5.3.4]
+
+- Autobattle now plays the next move on the same click or key that Blizzard requires. Timers cannot legally send pet-battle abilities.
+- While the toggle is ON, any click or held key during a battle submits the next scripted ability (or a ready ability / Pass).
+
+## [5.3.3]
+
+- Autobattle now retries the next move on a timer while the toggle is on, instead of waiting for a single battle event.
+- If Pet Battle Scripts does not consume the turn, Rematch clicks a ready ability or Pass itself.
+
+## [5.3.2]
+
+- Autobattle toggle now plays turns from pet-battle events without a click each round, using the same event-delay pattern as Underlight Angler Auto.
+- The toggle is saved and no longer turns itself off when the Autobattle button hides between rounds.
+
 ## [Unreleased]
 
 This update expands pet searching, improves saved-team loading in Battle Pet dungeons, fixes WoW 12.1 compatibility errors, and replaces the standard pet-battle bottom bar with a compact modern interface.
@@ -87,9 +152,10 @@ This update expands pet searching, improves saved-team loading in Battle Pet dun
 - Existing secondary Autobattle bindings remain visible and are not overwritten.
 - Keybind text automatically shrinks when needed to prevent overlap.
 - Right-clicking anywhere on the Autobattle control, including its `+` keybind area, toggles continuous script execution.
-- While active, Autobattle runs the next scripted move whenever the control becomes enabled for the player's turn and continues until the battle ends or it is toggled off.
-- Continuous execution now follows the pet-battle round-playback-complete event directly, with button enable/disable callbacks retained as a fallback for server-specific event behavior.
-- The label displays `ON` while continuous execution is active and resets automatically when the battle ends.
+- While the toggle is on, Autobattle submits the next move from pet-battle events (the same event-driven approach as Underlight Angler Auto) without requiring a click or keypress each round.
+- Assigned Pet Battle Scripts still run when that addon is loaded; otherwise Rematch uses the first ready ability, swaps a living pet, or passes.
+- The toggle is saved and is no longer cleared when Blizzard hides the Autobattle button between rounds.
+- A Rematch Autobattle control is created when Pet Battle Scripts is not installed.
 - Normal single-step left-click execution and left-clicking `+` to edit the keybind are unchanged.
 
 ### Changed

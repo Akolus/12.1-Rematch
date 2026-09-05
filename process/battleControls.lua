@@ -9,7 +9,7 @@ local module = rematch.battleControls
 
 local BUTTON_HEIGHT = 30
 local BUTTON_GAP = 1
-local LABEL_FONT_SIZE = 14
+local LABEL_FONT_SIZE = 13
 local BUTTON_WIDTHS = {
     battleData = 104,
     pass = 112,
@@ -20,16 +20,19 @@ local BUTTON_X = {
     pass = BUTTON_WIDTHS.battleData + BUTTON_GAP,
     auto = BUTTON_WIDTHS.battleData + BUTTON_GAP + BUTTON_WIDTHS.pass + BUTTON_GAP,
 }
-local KEY_SETTER_WIDTH = 74
+local KEY_CELL_WIDTH = 56
+local PLUS_SIZE = 22
 local TOTAL_WIDTH = BUTTON_WIDTHS.battleData + BUTTON_WIDTHS.pass + BUTTON_WIDTHS.auto
-    + KEY_SETTER_WIDTH + BUTTON_GAP * 3
+    + KEY_CELL_WIDTH + BUTTON_GAP * 3
 local MIN_SCALE_PERCENT = 50
 local MAX_SCALE_PERCENT = 200
-local AUTO_RUN_DELAY = 0.18
 local controlFrame
 local keybindCaptureFrame
 local keybindClickCatcher
-local autoRunEventFrame
+local rematchOwnedAutoButton
+local applyAutobattleBinding, saveAutobattleKey
+local pendingAutobattleBinding
+local pendingControlRefresh
 
 local function setTextureColor(texture, color)
     texture:SetColorTexture(color[1], color[2], color[3], color[4] or 1)
@@ -196,7 +199,7 @@ local function styleButton(button)
         if fontString and button.__rematchBaseFont then
             fontString:SetFont(
                 button.__rematchBaseFont[1],
-                button.__rematchBaseFont[2] * getControlScale(),
+                LABEL_FONT_SIZE * getControlScale(),
                 button.__rematchBaseFont[3]
             )
         end
@@ -249,168 +252,99 @@ local function styleButton(button)
     updateButtonState(button)
 end
 
+local function abbreviateBinding(binding)
+    if not binding or binding == "" then
+        return ""
+    end
+
+    local abbrevs = {
+        MOUSEWHEELDOWN = "MWD",
+        MOUSEWHEELUP = "MWU",
+        BUTTON1 = "M1",
+        BUTTON2 = "M2",
+        BUTTON3 = "M3",
+        BUTTON4 = "M4",
+        BUTTON5 = "M5",
+        SPACE = "Spc",
+        ENTER = "Ent",
+        BACKSPACE = "Bksp",
+        ESCAPE = "Esc",
+        TAB = "Tab",
+        PRINTSCREEN = "Prt",
+        PAGEUP = "PgUp",
+        PAGEDOWN = "PgDn",
+        INSERT = "Ins",
+        DELETE = "Del",
+        HOME = "Home",
+        NUMPADPLUS = "NP+",
+        NUMPADMINUS = "NP-",
+        NUMPADMULTIPLY = "NP*",
+        NUMPADDIVIDE = "NP/",
+        NUMPADDECIMAL = "NP.",
+        NUMPADENTER = "NPE",
+    }
+    local mods = {
+        SHIFT = "S",
+        CTRL = "C",
+        ALT = "A",
+        META = "M",
+    }
+
+    local parts = {}
+    for part in string.gmatch(binding, "[^-]+") do
+        local upper = string.upper(part)
+        if mods[upper] then
+            parts[#parts + 1] = mods[upper]
+        elseif abbrevs[upper] then
+            parts[#parts + 1] = abbrevs[upper]
+        elseif upper:match("^NUMPAD%d$") then
+            parts[#parts + 1] = "NP" .. upper:sub(7)
+        else
+            parts[#parts + 1] = part
+        end
+    end
+    return table.concat(parts, "-")
+end
+
+local function currentAutobattleBinding(autoButton)
+    local binding = rematch.settings.AutobattleHotKey
+    if (not binding or binding == "") and autoButton and autoButton.HotKey and autoButton.HotKey.GetText then
+        binding = autoButton.HotKey:GetText() or ""
+        binding = binding:match("([^/]+)") or binding
+    end
+    return binding or ""
+end
+
 local function fitHotKey(autoButton)
-    local hotKey = autoButton and autoButton.HotKey
-    local setter = autoButton and autoButton.__rematchKeybindButton
-    if not hotKey or not setter or not setter.Text then
+    local display = autoButton and autoButton.__rematchHotKeyDisplay
+    if not display or not display.Text then
         return
     end
 
-    local binding = hotKey:GetText() or ""
-    setter.Text:SetText(binding ~= "" and (binding .. "  +") or "+")
-
-    local baseFont = setter.__rematchSetterFont
-    if baseFont then
-        local scale = getControlScale()
-        local fontSize = baseFont[2] * scale
-        local minimumSize = 8 * scale
-        setter.Text:SetFont(baseFont[1], fontSize, baseFont[3])
-        while setter.Text:GetStringWidth() > (KEY_SETTER_WIDTH - 8) * scale and fontSize > minimumSize do
-            fontSize = fontSize - scale
-            setter.Text:SetFont(baseFont[1], fontSize, baseFont[3])
-        end
-    end
+    local binding = currentAutobattleBinding(autoButton)
+    display.__rematchFullBinding = binding
+    display.Text:SetText(abbreviateBinding(binding))
+    display:SetShown(binding ~= "")
 end
 
-local function updateAutoRunLabel(autoButton)
-    if not autoButton then
+local function getAutoButton()
+    return _G.tdBattlePetScriptAutoButton or rematchOwnedAutoButton
+end
+
+local function ensureOwnedAutoButton(passButton)
+    if rematchOwnedAutoButton then
+        return rematchOwnedAutoButton
+    end
+    if not passButton then
         return
     end
 
-    if not autoButton.__rematchAutoBaseText then
-        autoButton.__rematchAutoBaseText = autoButton:GetText() or "Autobattle"
-    end
-
-    autoButton:SetText(
-        autoButton.__rematchAutoRunActive
-            and (autoButton.__rematchAutoBaseText .. " ON")
-            or autoButton.__rematchAutoBaseText
-    )
-end
-
-local function setAutoRunActive(autoButton, active)
-    autoButton.__rematchAutoRunActive = active and true or false
-    autoButton.__rematchAutoRunGeneration = (autoButton.__rematchAutoRunGeneration or 0) + 1
-    autoButton.__rematchAutoRunPending = false
-    updateAutoRunLabel(autoButton)
-end
-
-local function runOriginalAutoClick(autoButton)
-    local original = autoButton and autoButton.__rematchOriginalAutoOnClick
-    if original then
-        -- Latch this enabled period so polling/events cannot submit the same
-        -- round twice before Pet Battle Scripts disables the button.
-        autoButton.__rematchAutoExecutedWhileEnabled = true
-        original(autoButton, "LeftButton")
-    end
-end
-
-local function scheduleAutoRun(autoButton)
-    if not autoButton or not autoButton.__rematchAutoRunActive
-        or autoButton.__rematchAutoRunPending or not autoButton:IsEnabled()
-        or autoButton.__rematchAutoExecutedWhileEnabled or not autoButton:IsShown() then
-        return
-    end
-
-    autoButton.__rematchAutoRunPending = true
-    local generation = autoButton.__rematchAutoRunGeneration
-
-    local function executeNextMove()
-        autoButton.__rematchAutoRunPending = false
-        if autoButton.__rematchAutoRunActive
-            and autoButton.__rematchAutoRunGeneration == generation
-            and not autoButton.__rematchAutoExecutedWhileEnabled
-            and autoButton:IsEnabled() and autoButton:IsShown()
-            and C_PetBattles and C_PetBattles.IsInBattle and C_PetBattles.IsInBattle() then
-            runOriginalAutoClick(autoButton)
-        end
-    end
-
-    if C_Timer and C_Timer.After then
-        C_Timer.After(AUTO_RUN_DELAY, executeNextMove)
-    else
-        executeNextMove()
-    end
-end
-
-local function ensureAutoRunEventFrame()
-    if autoRunEventFrame then
-        return
-    end
-
-    autoRunEventFrame = CreateFrame("Frame")
-    autoRunEventFrame:RegisterEvent("PET_BATTLE_PET_ROUND_PLAYBACK_COMPLETE")
-    autoRunEventFrame:RegisterEvent("PET_BATTLE_CLOSE")
-    autoRunEventFrame:SetScript("OnEvent", function(_, event)
-        local autoButton = _G.tdBattlePetScriptAutoButton
-        if not autoButton or not autoButton.__rematchContinuousAutoRun then
-            return
-        end
-
-        if event == "PET_BATTLE_CLOSE" then
-            setAutoRunActive(autoButton, false)
-            autoButton.__rematchAutoExecutedWhileEnabled = false
-            return
-        end
-
-        if not autoButton.__rematchAutoRunActive then
-            return
-        end
-
-        -- Pet Battle Scripts listens for the same event to re-enable its
-        -- button. Queue this for the next frame so all event handlers finish
-        -- first, then submit one action after the normal short delay.
-        local generation = autoButton.__rematchAutoRunGeneration
-        C_Timer.After(0, function()
-            if autoButton.__rematchAutoRunActive
-                and autoButton.__rematchAutoRunGeneration == generation then
-                autoButton.__rematchAutoExecutedWhileEnabled = false
-                if not autoButton.__rematchAutoRunPending then
-                    scheduleAutoRun(autoButton)
-                end
-            end
-        end)
-    end)
-end
-
-local function installContinuousAutoRun(autoButton)
-    if autoButton.__rematchContinuousAutoRun then
-        updateAutoRunLabel(autoButton)
-        return
-    end
-    autoButton.__rematchContinuousAutoRun = true
-    autoButton.__rematchOriginalAutoOnClick = autoButton:GetScript("OnClick")
-    autoButton.__rematchAutoBaseText = autoButton:GetText() or "Autobattle"
-    autoButton.__rematchAutoRunGeneration = 0
-    autoButton.__rematchAutoExecutedWhileEnabled = false
-
-    autoButton:SetScript("OnClick", function(self, mouseButton, ...)
-        if mouseButton == "RightButton" then
-            local activating = not self.__rematchAutoRunActive
-            setAutoRunActive(self, activating)
-            if activating and self:IsEnabled() then
-                runOriginalAutoClick(self)
-            end
-            return
-        end
-
-        local original = self.__rematchOriginalAutoOnClick
-        if original then
-            original(self, mouseButton, ...)
-        end
-    end)
-
-    autoButton:HookScript("OnEnable", scheduleAutoRun)
-    autoButton:HookScript("OnDisable", function(self)
-        self.__rematchAutoExecutedWhileEnabled = false
-        self.__rematchAutoRunPending = false
-    end)
-    autoButton:HookScript("OnHide", function(self)
-        setAutoRunActive(self, false)
-        self.__rematchAutoExecutedWhileEnabled = false
-    end)
-    ensureAutoRunEventFrame()
-    updateAutoRunLabel(autoButton)
+    local button = CreateFrame("Button", "RematchAutoBattleButton", passButton:GetParent(), "UIPanelButtonTemplate")
+    button:SetText("Autobattle")
+    button:SetSize(passButton:GetSize())
+    button.__rematchOwnedAutoButton = true
+    rematchOwnedAutoButton = button
+    return button
 end
 
 local modifierKeys = {
@@ -443,8 +377,31 @@ local function ensureKeybindClickCatcher()
     catcher:SetAllPoints(UIParent)
     catcher:SetFrameStrata("HIGH")
     catcher:EnableMouse(true)
-    catcher:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-    catcher:SetScript("OnClick", closeKeybindCapture)
+    catcher:EnableMouseWheel(true)
+    catcher:RegisterForClicks("AnyUp")
+    catcher:SetScript("OnMouseWheel", function(_, delta)
+        local autoButton = keybindCaptureFrame and keybindCaptureFrame.autoButton
+        local binding = buildBindingKey(delta > 0 and "MOUSEWHEELUP" or "MOUSEWHEELDOWN")
+        if autoButton and binding then
+            saveAutobattleKey(autoButton, binding)
+        end
+    end)
+    catcher:SetScript("OnClick", function(_, button)
+        local autoButton = keybindCaptureFrame and keybindCaptureFrame.autoButton
+        local mouseMap = {
+            MiddleButton = "BUTTON3",
+            Button4 = "BUTTON4",
+            Button5 = "BUTTON5",
+        }
+        if mouseMap[button] and autoButton then
+            local binding = buildBindingKey(mouseMap[button])
+            if binding then
+                saveAutobattleKey(autoButton, binding)
+            end
+            return
+        end
+        closeKeybindCapture()
+    end)
     catcher:Hide()
     keybindClickCatcher = catcher
     return catcher
@@ -475,27 +432,81 @@ local function buildBindingKey(key)
     return table.concat(parts, "-")
 end
 
-local function saveAutobattleKey(autoButton, binding)
+local bindingOwner
+
+local function getBindingOwner()
+    if not bindingOwner then
+        bindingOwner = CreateFrame("Frame", "RematchAutobattleBindingOwner", UIParent)
+    end
+    return bindingOwner
+end
+
+local function notifyPetBattleScripts(binding)
     local addon = _G.PetBattleScripts
-    if not addon or type(addon.SetSetting) ~= "function" then
-        return false
+    if not addon then
+        return
+    end
+    if type(addon.SetSetting) == "function" then
+        pcall(addon.SetSetting, addon, "autoButtonHotKey", binding or "")
+    end
+    if type(addon.SendMessage) == "function" then
+        pcall(addon.SendMessage, addon, "PET_BATTLE_SCRIPT_SETTING_CHANGED_autoButtonHotKey", "autoButtonHotKey", binding or "")
+    end
+    if type(addon.GetModule) == "function" then
+        local ok, ui = pcall(addon.GetModule, addon, "UI.PetBattle", true)
+        if ok and ui then
+            if ui.UpdateHotKey then
+                pcall(ui.UpdateHotKey, ui)
+            elseif ui.UpdateAutoButtonHotKey then
+                pcall(ui.UpdateAutoButtonHotKey, ui)
+            end
+        end
+    end
+end
+
+applyAutobattleBinding = function(binding)
+    if binding == nil then
+        binding = rematch.settings.AutobattleHotKey
+    end
+    if binding == "" then
+        binding = nil
+    end
+    rematch.settings.AutobattleHotKey = binding or ""
+
+    -- Both override binding APIs and the script addon's hotkey callbacks may
+    -- change protected bindings. pcall does not make these legal in combat.
+    -- Keep the latest saved key and apply it once lockdown has ended.
+    if InCombatLockdown() then
+        pendingAutobattleBinding = true
+        return
+    end
+    pendingAutobattleBinding = nil
+
+    notifyPetBattleScripts(rematch.settings.AutobattleHotKey)
+
+    local autoButton = getAutoButton()
+    local owner = getBindingOwner()
+    pcall(ClearOverrideBindings, owner)
+    if autoButton then
+        pcall(ClearOverrideBindings, autoButton)
     end
 
-    addon:SetSetting("autoButtonHotKey", binding)
+    local clickName = autoButton and autoButton.GetName and autoButton:GetName()
+    if binding and clickName then
+        pcall(SetOverrideBindingClick, owner, true, binding, clickName, "LeftButton")
+        pcall(SetOverrideBindingClick, autoButton, true, binding, clickName, "LeftButton")
+    end
+
     if autoButton and autoButton.HotKey then
-        local primary = binding
-        local secondary
-        if type(addon.GetSetting) == "function" then
-            primary = addon:GetSetting("autoButtonHotKey")
-            secondary = addon:GetSetting("autoButtonHotKey2")
-        end
-        primary = primary ~= "" and primary or nil
-        secondary = secondary ~= "" and secondary or nil
-        autoButton.HotKey:SetText(
-            primary and secondary and (primary .. "/" .. secondary) or primary or secondary or ""
-        )
+        autoButton.HotKey:SetText(binding or "")
+        fitHotKey(autoButton)
+    elseif autoButton then
         fitHotKey(autoButton)
     end
+end
+
+saveAutobattleKey = function(autoButton, binding)
+    applyAutobattleBinding(binding)
     closeKeybindCapture()
     return true
 end
@@ -537,6 +548,9 @@ local function showKeybindCapture(autoButton, anchor)
         frame.Text = text
 
         frame:SetScript("OnKeyDown", function(self, key)
+            if self.SetPropagateKeyboardInput then
+                self:SetPropagateKeyboardInput(false)
+            end
             local binding = buildBindingKey(key)
             if binding == false then
                 closeKeybindCapture()
@@ -604,24 +618,58 @@ local function showKeybindCapture(autoButton, anchor)
     keybindCaptureFrame:EnableKeyboard(true)
 end
 
-local function ensureKeybindButton(autoButton)
-    if autoButton.__rematchKeybindButton then
-        return autoButton.__rematchKeybindButton
+local function getMenuBar()
+    return rematch.battleActionBar and rematch.battleActionBar.GetFrame
+        and rematch.battleActionBar:GetFrame() or controlFrame
+end
+
+local function ensureHotKeyDisplay(autoButton)
+    if autoButton.__rematchHotKeyDisplay then
+        return autoButton.__rematchHotKeyDisplay
     end
 
-    local button = CreateFrame("Button", nil, autoButton)
-    button:SetFrameLevel(autoButton:GetFrameLevel() + 2)
-    button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-    button.__rematchModernBorders = {}
+    local display = CreateFrame("Button", nil, controlFrame or autoButton)
+    display:SetFrameLevel((controlFrame or autoButton):GetFrameLevel() + 2)
+    display:EnableMouse(true)
 
-    local plus = button:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    local text = display:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    text:SetPoint("CENTER", 0, 0)
+    text:SetTextColor(colors.keyText[1], colors.keyText[2], colors.keyText[3], 1)
+    text:SetJustifyH("CENTER")
+    display.Text = text
+
+    display:SetScript("OnEnter", function(self)
+        local full = self.__rematchFullBinding
+        if not full or full == "" then
+            return
+        end
+        GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
+        GameTooltip:SetText(full)
+        GameTooltip:Show()
+    end)
+    display:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
+
+    autoButton.__rematchHotKeyDisplay = display
+    return display
+end
+
+local function ensurePlusButton(autoButton)
+    if autoButton.__rematchPlusButton then
+        return autoButton.__rematchPlusButton
+    end
+
+    local button = CreateFrame("Button", nil, controlFrame or autoButton)
+    button:SetFrameLevel((controlFrame or autoButton):GetFrameLevel() + 3)
+    button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+
+    local plus = button:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    plus:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 20, "OUTLINE")
     plus:SetPoint("CENTER", 0, 0)
     plus:SetText("+")
     plus:SetTextColor(colors.keyButtonText[1], colors.keyButtonText[2], colors.keyButtonText[3], 1)
-    local font, size, flags = plus:GetFont()
-    if font and size then
-        button.__rematchSetterFont = {font, size, flags}
-    end
+    plus:SetJustifyH("CENTER")
     button.Text = plus
 
     button:SetScript("OnEnter", function(self)
@@ -629,12 +677,12 @@ local function ensureKeybindButton(autoButton)
             colors.keyButtonTextHover[1],
             colors.keyButtonTextHover[2],
             colors.keyButtonTextHover[3],
-            colors.keyButtonTextHover[4]
+            1
         )
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:SetText("Change Autobattle keybind")
-        GameTooltip:AddLine("Left-click, then press a key.", 0.85, 0.88, 0.92, true)
-        GameTooltip:AddLine("Right-click: Toggle continuous Autobattle.", 0.85, 0.88, 0.92, true)
+        GameTooltip:AddLine("Left-click, then press a key or scroll the mouse wheel.", 0.85, 0.88, 0.92, true)
+        GameTooltip:AddLine("Right-click to clear the keybind.", 0.85, 0.88, 0.92, true)
         GameTooltip:Show()
     end)
     button:SetScript("OnLeave", function(self)
@@ -642,17 +690,13 @@ local function ensureKeybindButton(autoButton)
             colors.keyButtonText[1],
             colors.keyButtonText[2],
             colors.keyButtonText[3],
-            colors.keyButtonText[4]
+            1
         )
         GameTooltip:Hide()
     end)
     button:SetScript("OnClick", function(self, mouseButton)
         if mouseButton == "RightButton" then
-            -- Keep the existing continuous-Autobattle shortcut available from
-            -- the separate keybind setter too.
-            if autoButton:IsEnabled() then
-                autoButton:Click("RightButton")
-            end
+            saveAutobattleKey(autoButton, "")
             return
         end
         GameTooltip:Hide()
@@ -660,21 +704,60 @@ local function ensureKeybindButton(autoButton)
     end)
 
     autoButton:HookScript("OnHide", closeKeybindCapture)
+    autoButton.__rematchPlusButton = button
     autoButton.__rematchKeybindButton = button
     return button
 end
 
 local function layoutKeybindButton(autoButton)
-    local scale = getControlScale()
-    local button = ensureKeybindButton(autoButton)
+    if not autoButton or not controlFrame then
+        return
+    end
 
-    button:SetSize(KEY_SETTER_WIDTH * scale, BUTTON_HEIGHT * scale)
-    button:ClearAllPoints()
-    button:SetPoint("LEFT", autoButton, "RIGHT", BUTTON_GAP * scale, 0)
+    local scale = getControlScale()
+    local plus = ensurePlusButton(autoButton)
+    local display = ensureHotKeyDisplay(autoButton)
+    local plusSize = PLUS_SIZE * scale
+    local menu = getMenuBar() or controlFrame
+    if not menu then
+        return
+    end
+    local dividerX = (BUTTON_X.auto + BUTTON_WIDTHS.auto) * scale
+
+    plus:SetParent(menu)
+    plus:SetFrameLevel(menu:GetFrameLevel() + 8)
+    plus:SetSize(plusSize, plusSize)
+    plus:ClearAllPoints()
+    plus:SetPoint("TOPRIGHT", menu, "TOPRIGHT", 0, 0)
+    if plus.Text then
+        plus.Text:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", plusSize * 0.92, "OUTLINE")
+        plus.Text:ClearAllPoints()
+        plus.Text:SetPoint("CENTER", plus, "CENTER", 0, 0)
+    end
+
+    display:SetParent(controlFrame)
+    display:SetFrameLevel(controlFrame:GetFrameLevel() + 2)
+    display:ClearAllPoints()
+    display:SetPoint("LEFT", controlFrame, "LEFT", dividerX, 0)
+    display:SetPoint("RIGHT", controlFrame, "RIGHT", 0, 0)
+    display:SetHeight(BUTTON_HEIGHT * scale)
+    if display.Text then
+        display.Text:ClearAllPoints()
+        display.Text:SetPoint("CENTER", display, "CENTER", 0, 0)
+        display.Text:SetJustifyH("CENTER")
+    end
+
     fitHotKey(autoButton)
 
     if keybindCaptureFrame and keybindCaptureFrame:IsShown() and keybindCaptureFrame.autoButton == autoButton then
-        showKeybindCapture(autoButton, button)
+        showKeybindCapture(autoButton, plus)
+    end
+end
+
+function module:LayoutKeybind()
+    local autoButton = getAutoButton()
+    if autoButton then
+        layoutKeybindButton(autoButton)
     end
 end
 
@@ -804,12 +887,8 @@ local function attachControlButton(button, role)
     installControlInteraction(button)
 
     if role == "auto" then
-        -- Left-click retains Pet Battle Scripts' single-step action. Right-click
-        -- toggles continuous execution whenever the button becomes enabled on
-        -- the player's next actionable turn.
-        button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-        installContinuousAutoRun(button)
         reserveHotKey(button)
+        applyAutobattleBinding()
     else
         centerLabel(button)
     end
@@ -833,7 +912,13 @@ local function ensureControlFrame(passButton, turnTimer)
         controlFrame:SetMovable(true)
 
         controlFrame.__rematchSeparators = {}
-        for index = 1, 2 do
+        for index = 1, 3 do
+            local separator = controlFrame:CreateTexture(nil, "ARTWORK")
+            setTextureColor(separator, colors.separator)
+            controlFrame.__rematchSeparators[index] = separator
+        end
+    elseif #controlFrame.__rematchSeparators < 3 then
+        for index = #controlFrame.__rematchSeparators + 1, 3 do
             local separator = controlFrame:CreateTexture(nil, "ARTWORK")
             setTextureColor(separator, colors.separator)
             controlFrame.__rematchSeparators[index] = separator
@@ -844,7 +929,11 @@ local function ensureControlFrame(passButton, turnTimer)
     controlFrame:SetScale(1)
     controlFrame:SetSize(TOTAL_WIDTH * scale, BUTTON_HEIGHT * scale)
 
-    local separatorX = {BUTTON_WIDTHS.battleData, BUTTON_X.auto - 1}
+    local separatorX = {
+        BUTTON_WIDTHS.battleData,
+        BUTTON_X.auto - 1,
+        BUTTON_X.auto + BUTTON_WIDTHS.auto,
+    }
     for index, separator in ipairs(controlFrame.__rematchSeparators) do
         separator:ClearAllPoints()
         if _G.PixelUtil and PixelUtil.SetPoint then
@@ -898,14 +987,21 @@ function module:GetBaseSize()
 end
 
 function module:Refresh(skipActionBarRefresh)
+    -- Refresh reparents and anchors battle buttons as well as setting keys.
+    if InCombatLockdown() then
+        pendingControlRefresh = true
+        return
+    end
+    pendingControlRefresh = nil
+
     local turnTimer = _G.PetBattleFrame and PetBattleFrame.BottomFrame and PetBattleFrame.BottomFrame.TurnTimer
     local passButton = turnTimer and turnTimer.SkipButton
     local battleDataButton = _G.RematchBattleDataButton
-    local autoButton = _G.tdBattlePetScriptAutoButton
-
     if not passButton then
         return
     end
+
+    local autoButton = _G.tdBattlePetScriptAutoButton or ensureOwnedAutoButton(passButton)
 
     ensureControlFrame(passButton, turnTimer)
     attachControlButton(battleDataButton, "battleData")
@@ -918,9 +1014,27 @@ function module:Refresh(skipActionBarRefresh)
             autoButton:HookScript("OnShow", function(self)
                 reserveHotKey(self)
                 updateButtonState(self)
+                if C_Timer and C_Timer.After then
+                    C_Timer.After(0, applyAutobattleBinding)
+                else
+                    applyAutobattleBinding()
+                end
             end)
         end
         hidePetBattleScriptsArt()
+        if rematch.settings.AutobattleHotKey == nil or rematch.settings.AutobattleHotKey == "" then
+            local addon = _G.PetBattleScripts
+            if addon and type(addon.GetSetting) == "function" then
+                local existing = addon:GetSetting("autoButtonHotKey")
+                if type(existing) == "string" and existing ~= "" then
+                    rematch.settings.AutobattleHotKey = existing
+                end
+            end
+        end
+        applyAutobattleBinding()
+        if _G.RematchAutoBattleFlag then
+            RematchAutoBattleFlag:Hide()
+        end
     end
 
     if not skipActionBarRefresh and rematch.battleActionBar and rematch.battleActionBar.Refresh then
@@ -942,6 +1056,19 @@ local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:RegisterEvent("PET_BATTLE_OPENING_START")
-eventFrame:SetScript("OnEvent", scheduleRefresh)
+eventFrame:RegisterEvent("PET_BATTLE_OPENING_DONE")
+eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+eventFrame:SetScript("OnEvent", function(_, event)
+    if event == "PLAYER_REGEN_ENABLED" then
+        if pendingAutobattleBinding then
+            applyAutobattleBinding()
+        end
+        if pendingControlRefresh then
+            scheduleRefresh()
+        end
+    else
+        scheduleRefresh()
+    end
+end)
 
 scheduleRefresh()

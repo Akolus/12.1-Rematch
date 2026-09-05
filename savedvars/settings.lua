@@ -259,6 +259,7 @@ local defaults = {
     BattleControlsX = false,
     BattleControlsY = false,
     BattleControlsScale = 100,
+    AutobattleHotKey = "",
 }
 
 -- metatable must remain empty for this to reliably work; which it will because setter never rawsets

@@ -576,6 +576,9 @@ layoutActionBar = function()
     if controls then
         controls:ClearAllPoints()
         controls:SetPoint("TOP", bar, "TOP", 0, -(verticalPadding + timerHeight + timerGap))
+        if rematch.battleControls and rematch.battleControls.LayoutKeybind then
+            rematch.battleControls:LayoutKeybind()
+        end
     end
 
     if count > 0 then

@@ -164,11 +164,21 @@ function rematch.interact:REMATCH_TARGET_CHANGED()
         return
     end
     lastInteract = npcID
-    if settings.InteractOnTarget==C.INTERACT_PROMPT or pendingInteract==C.INTERACT_PROMPT then
+    local mode = pendingInteract
+    if not mode or mode == C.INTERACT_NONE then
+        if settings.InteractOnTarget and settings.InteractOnTarget ~= C.INTERACT_NONE then
+            mode = settings.InteractOnTarget
+        elseif settings.InteractOnSoftInteract and settings.InteractOnSoftInteract ~= C.INTERACT_NONE then
+            mode = settings.InteractOnSoftInteract
+        else
+            mode = settings.InteractOnMouseover
+        end
+    end
+    if mode == C.INTERACT_PROMPT then
         rematch.dialog:ShowDialog("PromptToLoadDialog",npcID)
-    elseif (settings.InteractOnTarget==C.INTERACT_WINDOW or pendingInteract==C.INTERACT_WINDOW) and not rematch.frame:IsVisible() then
+    elseif mode == C.INTERACT_WINDOW and not rematch.frame:IsVisible() then
         rematch.frame:Toggle(true)
-    elseif settings.InteractOnTarget==C.INTERACT_AUTOLOAD or pendingInteract==C.INTERACT_AUTOLOAD then
+    elseif mode == C.INTERACT_AUTOLOAD then
         local teams,index = rematch.savedTargets:GetTeams(npcID)
         if index and teams[index] then
             rematch.interact:LoadTeamID(teams[index])
